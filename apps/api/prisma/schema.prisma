@@ -1,0 +1,147 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  phone     String   @unique
+  email     String?  @unique
+  password  String
+  role      Role     @default(farmer)
+  avatar    String?
+  farmId    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  diagnoses    Diagnosis[]
+  poultryHouse PoultryHouse[]
+
+  @@map("users")
+}
+
+model PoultryHouse {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  name        String
+  capacity    Int
+  currentCount Int    @default(0)
+  species     Species
+  age         Int      // days
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  environmentData EnvironmentData[]
+  alerts        Alert[]
+
+  @@map("poultry_houses")
+}
+
+model EnvironmentData {
+  id          String   @id @default(uuid())
+  houseId     String
+  house       PoultryHouse @relation(fields: [houseId], references: [id])
+  temperature Float
+  humidity    Float
+  ammonia     Float?
+  co2         Float?
+  ventilation Ventilation
+  timestamp   DateTime @default(now())
+
+  @@index([houseId, timestamp])
+  @@map("environment_data")
+}
+
+model Diagnosis {
+  id            String        @id @default(uuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  imageUrl      String
+  species       Species
+  symptoms      String[]
+  aiResult      Json          // AIResult object
+  confidence    Float
+  status        DiagnosisStatus @default(pending)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@index([userId, createdAt])
+  @@map("diagnoses")
+}
+
+model Alert {
+  id            String      @id @default(uuid())
+  houseId       String
+  house         PoultryHouse @relation(fields: [houseId], references: [id])
+  type          AlertType
+  severity      Severity
+  message       String
+  acknowledged  Boolean     @default(false)
+  createdAt     DateTime    @default(now())
+
+  @@index([houseId, createdAt])
+  @@map("alerts")
+}
+
+model AIModelVersion {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  version     String
+  modelPath   String
+  accuracy    Float
+  isActive    Boolean  @default(false)
+  description String?
+  createdAt   DateTime @default(now())
+
+  @@map("ai_model_versions")
+}
+
+enum Role {
+  admin
+  farmer
+  vet
+  technician
+}
+
+enum Species {
+  chicken
+  duck
+  goose
+  turkey
+  other
+}
+
+enum Ventilation {
+  good
+  moderate
+  poor
+}
+
+enum DiagnosisStatus {
+  pending
+  analyzing
+  completed
+  failed
+}
+
+enum AlertType {
+  temperature
+  humidity
+  ammonia
+  co2
+  disease
+}
+
+enum Severity {
+  warning
+  critical
+}

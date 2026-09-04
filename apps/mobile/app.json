@@ -1,0 +1,55 @@
+{
+  "expo": {
+    "name": "禽康智检",
+    "slug": "qinkangzhijian",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "scheme": "qinkangzhijian",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#22C55E"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.qinkangzhijian.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "需要访问相机以拍摄禽类照片进行AI诊断",
+        "NSPhotoLibraryUsageDescription": "需要访问相册以选择禽类照片进行AI诊断"
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#22C55E"
+      },
+      "package": "com.qinkangzhijian.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.READ_EXTERNAL_STORAGE"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "允许访问相册以选择禽类照片"
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "允许使用相机拍摄禽类照片"
+        }
+      ]
+    ]
+  }
+}

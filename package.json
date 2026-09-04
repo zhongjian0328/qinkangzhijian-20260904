@@ -1,0 +1,30 @@
+{
+  "name": "qinkangzhijian",
+  "private": true,
+  "version": "1.0.0",
+  "description": "禽康智检APP - AI辅助禽类疾病诊断系统",
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "format": "prettier --write \"**/*.{ts,tsx,md}\"",
+    "web:dev": "turbo run dev --filter=web",
+    "mobile:dev": "turbo run dev --filter=mobile",
+    "api:dev": "turbo run dev --filter=api",
+    "ai:dev": "turbo run dev --filter=ai",
+    "db:generate": "turbo run db:generate --filter=api",
+    "db:migrate": "turbo run db:migrate --filter=api",
+    "db:seed": "turbo run db:seed --filter=api"
+  },
+  "devDependencies": {
+    "turbo": "^2.4.0",
+    "prettier": "^3.4.0",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=9.0.0"
+  },
+  "packageManager": "pnpm@9.15.0"
+}

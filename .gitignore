@@ -1,0 +1,75 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.next/
+.expo/
+.output/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Turborepo
+.turbo/
+
+# Prisma
+prisma/migrations/
+
+# Mobile
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.plist
+*.xcuserdata
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.env.venv
+
+# AI model weights
+models/*.pt
+models/*.onnx
+models/*.bin
+
+# Documentation generated
+docs/generated/
+
+# ZeeLin local tool state (do not commit; CLAUDE.md is committed separately)
+.claude/settings.local.json
+.claude/evolution/
+.claude/feedback/
+.claude/memory/
+.claude/worktrees/
+
+# Raw knowledge source (already integrated into apps/ai/src/knowledge/)
+/鸡的疾病知识/

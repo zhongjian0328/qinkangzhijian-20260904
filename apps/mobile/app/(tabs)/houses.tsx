@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { PoultryHouse, Species } from '@qinkang/types';
 import { houseApi, CreateHouseInput } from '../../src/api/house';
 
@@ -30,10 +30,12 @@ const SPECIES_LABEL: Record<string, string> = {
 };
 
 export default function HousesScreen() {
+  const router = useRouter();
   const [houses, setHouses] = useState<PoultryHouse[]>([]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const [name, setName] = useState('');
   const [capacity, setCapacity] = useState('');
@@ -64,6 +66,17 @@ export default function HousesScreen() {
     setCurrentCount('');
     setAge('');
     setSpecies('chicken');
+    setEditingId(null);
+  };
+
+  const startEdit = (house: PoultryHouse) => {
+    setName(house.name);
+    setCapacity(String(house.capacity));
+    setCurrentCount(String(house.currentCount));
+    setAge(String(house.age));
+    setSpecies(house.species);
+    setEditingId(house.id);
+    setShowForm(true);
   };
 
   const submit = async () => {
@@ -97,15 +110,37 @@ export default function HousesScreen() {
 
     setSaving(true);
     try {
-      await houseApi.create(data);
+      if (editingId) {
+        await houseApi.update(editingId, data);
+      } else {
+        await houseApi.create(data);
+      }
       resetForm();
       setShowForm(false);
       await load();
     } catch (e) {
-      Alert.alert('创建失败', e instanceof Error ? e.message : '请重试');
+      Alert.alert(editingId ? '更新失败' : '创建失败', e instanceof Error ? e.message : '请重试');
     } finally {
       setSaving(false);
     }
+  };
+
+  const confirmDelete = (house: PoultryHouse) => {
+    Alert.alert('删除禽舍', `确定要删除「${house.name}」吗？其环境数据与告警也会一并删除。`, [
+      { text: '取消', style: 'cancel' },
+      {
+        text: '删除',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await houseApi.remove(house.id);
+            await load();
+          } catch (e) {
+            Alert.alert('删除失败', e instanceof Error ? e.message : '请重试');
+          }
+        },
+      },
+    ]);
   };
 
   return (
@@ -125,6 +160,7 @@ export default function HousesScreen() {
 
       {showForm ? (
         <View style={styles.formCard}>
+          <Text style={styles.formTitle}>{editingId ? '编辑禽舍' : '新建禽舍'}</Text>
           <TextInput
             style={styles.input}
             placeholder="禽舍名称（如：1号鸡舍）"
@@ -178,7 +214,7 @@ export default function HousesScreen() {
             {saving ? (
               <ActivityIndicator color="#fff" />
             ) : (
-              <Text style={styles.submitText}>保存</Text>
+              <Text style={styles.submitText}>{editingId ? '保存修改' : '保存'}</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -191,13 +227,33 @@ export default function HousesScreen() {
       ) : (
         houses.map((house) => (
           <View key={house.id} style={styles.card}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.houseName}>{house.name}</Text>
-              <Text style={styles.speciesTag}>{SPECIES_LABEL[house.species] ?? house.species}</Text>
+            <TouchableOpacity
+              style={styles.cardMain}
+              onPress={() => router.push(`/house/${house.id}`)}
+            >
+              <View style={styles.cardHeader}>
+                <Text style={styles.houseName}>{house.name}</Text>
+                <Text style={styles.speciesTag}>{SPECIES_LABEL[house.species] ?? house.species}</Text>
+              </View>
+              <Text style={styles.meta}>
+                存栏 {house.currentCount} / {house.capacity} 只 · 日龄 {house.age} 天
+              </Text>
+              {house.alerts?.length ? (
+                <Text style={styles.alertHint}>
+                  ⚠️ {house.alerts.length} 条未处理告警，点击查看
+                </Text>
+              ) : (
+                <Text style={styles.envHint}>查看环境数据与告警 ›</Text>
+              )}
+            </TouchableOpacity>
+            <View style={styles.cardActions}>
+              <TouchableOpacity style={styles.actionBtn} onPress={() => startEdit(house)}>
+                <Text style={styles.actionEdit}>编辑</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.actionBtn} onPress={() => confirmDelete(house)}>
+                <Text style={styles.actionDelete}>删除</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={styles.meta}>
-              存栏 {house.currentCount} / {house.capacity} 只 · 日龄 {house.age} 天
-            </Text>
           </View>
         ))
       )}
@@ -213,6 +269,7 @@ const styles = StyleSheet.create({
   addButton: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#22C55E' },
   addButtonText: { color: '#fff', fontWeight: 'bold' },
   formCard: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 16 },
+  formTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 12, color: '#111' },
   input: {
     borderWidth: 1,
     borderColor: '#e0e0e0',
@@ -241,9 +298,31 @@ const styles = StyleSheet.create({
   submitText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
   loading: { marginTop: 20 },
   empty: { color: '#999', textAlign: 'center', marginTop: 40 },
-  card: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 10 },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginBottom: 10,
+    overflow: 'hidden',
+  },
+  cardMain: { padding: 16 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-  houseName: { fontSize: 16, fontWeight: 'bold', color: '#111' },
-  speciesTag: { fontSize: 12, color: '#22C55E', fontWeight: 'bold' },
+  houseName: { fontSize: 16, fontWeight: 'bold', color: '#111', flex: 1 },
+  speciesTag: { fontSize: 12, color: '#22C55E', fontWeight: 'bold', marginLeft: 8 },
   meta: { fontSize: 13, color: '#666' },
+  alertHint: { fontSize: 13, color: '#F59E0B', marginTop: 8, fontWeight: '600' },
+  envHint: { fontSize: 13, color: '#22C55E', marginTop: 8 },
+  cardActions: {
+    flexDirection: 'row',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#eee',
+  },
+  actionBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderRightColor: '#eee',
+  },
+  actionEdit: { color: '#22C55E', fontWeight: '600', fontSize: 14 },
+  actionDelete: { color: '#EF4444', fontWeight: '600', fontSize: 14 },
 });

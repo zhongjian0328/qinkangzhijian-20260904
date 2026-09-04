@@ -23,9 +23,21 @@ export interface EnvironmentSnapshot {
 
 export interface Alert {
   id: string;
+  houseId?: string;
   type: 'temperature' | 'humidity' | 'ammonia' | 'co2' | 'disease';
   severity: 'warning' | 'critical';
   message: string;
   acknowledged: boolean;
   createdAt: string;
+}
+
+export interface EnvironmentRecord {
+  id: string;
+  houseId: string;
+  temperature: number;
+  humidity: number;
+  ammonia?: number | null;
+  co2?: number | null;
+  ventilation: 'good' | 'moderate' | 'poor';
+  timestamp: string;
 }

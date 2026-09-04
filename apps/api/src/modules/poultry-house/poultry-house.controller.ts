@@ -1,4 +1,14 @@
-import { Controller, Get, Post, Put, Delete, Param, Body, UseGuards, Request } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+  Request,
+} from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { PoultryHouseService } from './poultry-house.service';
@@ -24,19 +34,43 @@ export class PoultryHouseController {
 
   @Get(':id')
   @ApiOperation({ summary: '获取禽舍详情' })
-  findOne(@Param('id') id: string) {
-    return this.poultryHouseService.findById(id);
+  findOne(@Request() req, @Param('id') id: string) {
+    return this.poultryHouseService.findById(req.user.id, id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: '更新禽舍信息' })
+  update(@Request() req, @Param('id') id: string, @Body() dto: any) {
+    return this.poultryHouseService.update(req.user.id, id, dto);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: '删除禽舍' })
+  remove(@Request() req, @Param('id') id: string) {
+    return this.poultryHouseService.remove(req.user.id, id);
   }
 
   @Get(':id/environment')
   @ApiOperation({ summary: '获取环境数据' })
-  getEnvironment(@Param('id') id: string) {
-    return this.poultryHouseService.getEnvironmentData(id);
+  getEnvironment(@Request() req, @Param('id') id: string) {
+    return this.poultryHouseService.getEnvironmentData(req.user.id, id);
+  }
+
+  @Post(':id/environment')
+  @ApiOperation({ summary: '录入环境数据' })
+  addEnvironment(@Request() req, @Param('id') id: string, @Body() dto: any) {
+    return this.poultryHouseService.addEnvironmentData(req.user.id, id, dto);
   }
 
   @Get(':id/alerts')
   @ApiOperation({ summary: '获取告警列表' })
-  getAlerts(@Param('id') id: string) {
-    return this.poultryHouseService.getAlerts(id);
+  getAlerts(@Request() req, @Param('id') id: string) {
+    return this.poultryHouseService.getAlerts(req.user.id, id);
+  }
+
+  @Post('alerts/:alertId/acknowledge')
+  @ApiOperation({ summary: '确认告警' })
+  acknowledge(@Request() req, @Param('alertId') alertId: string) {
+    return this.poultryHouseService.acknowledgeAlert(req.user.id, alertId);
   }
 }

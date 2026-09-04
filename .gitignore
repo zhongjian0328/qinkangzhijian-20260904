@@ -32,6 +32,9 @@ pnpm-debug.log*
 coverage/
 .nyc_output/
 
+# Uploaded images (diagnosis photos)
+uploads/
+
 # Turborepo
 .turbo/
 

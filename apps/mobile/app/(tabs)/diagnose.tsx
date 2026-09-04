@@ -32,6 +32,8 @@ const SEVERITY_META: Record<string, { label: string; color: string }> = {
   critical: { label: '危重', color: '#EF4444' },
 };
 
+const MAX_IMAGES = 9;
+
 function getMime(uri: string): string {
   const ext = uri.split('.').pop()?.split('?')[0]?.toLowerCase();
   if (ext === 'png') return 'image/png';
@@ -61,14 +63,19 @@ function delay(ms: number) {
 export default function DiagnoseScreen() {
   const token = useAuthStore((s) => s.token);
 
-  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [imageUris, setImageUris] = useState<string[]>([]);
   const [species, setSpecies] = useState<Species>('chicken');
   const [symptomsText, setSymptomsText] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<Diagnosis | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const pickImage = async () => {
+  const resetResult = () => {
+    setResult(null);
+    setError(null);
+  };
+
+  const pickImages = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
       Alert.alert('需要权限', '请允许访问相册以选择禽类照片');
@@ -77,14 +84,20 @@ export default function DiagnoseScreen() {
 
     const picked = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
-      allowsEditing: true,
+      allowsMultipleSelection: true,
       quality: 0.8,
     });
 
-    if (!picked.canceled) {
-      setImageUri(picked.assets[0].uri);
-      setResult(null);
-      setError(null);
+    if (!picked.canceled && picked.assets?.length) {
+      setImageUris((prev) => {
+        const next = [...prev];
+        for (const asset of picked.assets) {
+          if (next.length >= MAX_IMAGES) break;
+          if (!next.includes(asset.uri)) next.push(asset.uri);
+        }
+        return next;
+      });
+      resetResult();
     }
   };
 
@@ -95,16 +108,18 @@ export default function DiagnoseScreen() {
       return;
     }
 
-    const picked = await ImagePicker.launchCameraAsync({
-      allowsEditing: true,
-      quality: 0.8,
-    });
+    const picked = await ImagePicker.launchCameraAsync({ quality: 0.8 });
 
-    if (!picked.canceled) {
-      setImageUri(picked.assets[0].uri);
-      setResult(null);
-      setError(null);
+    if (!picked.canceled && picked.assets?.[0]?.uri) {
+      setImageUris((prev) =>
+        prev.length >= MAX_IMAGES ? prev : [...prev, picked.assets[0].uri],
+      );
+      resetResult();
     }
+  };
+
+  const removeImage = (uri: string) => {
+    setImageUris((prev) => prev.filter((u) => u !== uri));
   };
 
   const pollUntilDone = async (id: string): Promise<Diagnosis> => {
@@ -119,8 +134,8 @@ export default function DiagnoseScreen() {
   };
 
   const submit = async () => {
-    if (!imageUri) {
-      setError('请先选择或拍摄一张禽类照片');
+    if (imageUris.length === 0) {
+      setError('请先选择或拍摄至少一张禽类照片');
       return;
     }
     if (!token) {
@@ -136,9 +151,10 @@ export default function DiagnoseScreen() {
     setResult(null);
 
     try {
-      const imageUrl = await uriToDataUri(imageUri);
+      const dataUris = await Promise.all(imageUris.map(uriToDataUri));
+      const { urls } = await diagnosisApi.upload(dataUris);
       const created = await diagnosisApi.create({
-        imageUrl,
+        imageUrls: urls,
         species,
         symptoms: parseSymptoms(symptomsText),
       });
@@ -158,14 +174,24 @@ export default function DiagnoseScreen() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>AI 诊断</Text>
-      <Text style={styles.subtitle}>选择或拍摄禽类照片进行分析</Text>
+      <Text style={styles.subtitle}>选择或拍摄禽类照片进行分析（最多 {MAX_IMAGES} 张）</Text>
 
-      {imageUri ? (
-        <View style={styles.previewWrap}>
-          <Image source={{ uri: imageUri }} style={styles.preview} resizeMode="cover" />
-          <TouchableOpacity style={styles.changeImage} onPress={pickImage}>
-            <Text style={styles.changeImageText}>更换图片</Text>
-          </TouchableOpacity>
+      {imageUris.length > 0 ? (
+        <View style={styles.previewGrid}>
+          {imageUris.map((uri) => (
+            <View key={uri} style={styles.thumbWrap}>
+              <Image source={{ uri }} style={styles.thumb} resizeMode="cover" />
+              <TouchableOpacity style={styles.thumbRemove} onPress={() => removeImage(uri)}>
+                <Text style={styles.thumbRemoveText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+          ))}
+          {imageUris.length < MAX_IMAGES ? (
+            <TouchableOpacity style={styles.addTile} onPress={pickImages}>
+              <Text style={styles.addTilePlus}>＋</Text>
+              <Text style={styles.addTileText}>添加</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       ) : (
         <View style={styles.placeholder}>
@@ -175,7 +201,7 @@ export default function DiagnoseScreen() {
       )}
 
       <View style={styles.actions}>
-        <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={pickImage}>
+        <TouchableOpacity style={[styles.button, styles.primaryButton]} onPress={pickImages}>
           <Text style={styles.buttonText}>📁 从相册选择</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[styles.button, styles.secondaryButton]} onPress={takePhoto}>
@@ -301,10 +327,39 @@ const styles = StyleSheet.create({
   },
   placeholderIcon: { fontSize: 48, marginBottom: 8 },
   placeholderText: { color: '#999' },
-  previewWrap: { marginVertical: 20 },
-  preview: { width: '100%', height: 220, borderRadius: 16, backgroundColor: '#f5f5f5' },
-  changeImage: { alignSelf: 'center', marginTop: 10 },
-  changeImageText: { color: '#22C55E', fontWeight: '600' },
+  previewGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+    marginVertical: 20,
+  },
+  thumbWrap: { width: 96, height: 96, borderRadius: 12, overflow: 'hidden' },
+  thumb: { width: '100%', height: '100%', backgroundColor: '#f5f5f5' },
+  thumbRemove: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  thumbRemoveText: { color: '#fff', fontSize: 12, fontWeight: 'bold' },
+  addTile: {
+    width: 96,
+    height: 96,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#d1d5db',
+    borderStyle: 'dashed',
+    backgroundColor: '#fafafa',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addTilePlus: { fontSize: 28, color: '#22C55E', lineHeight: 30 },
+  addTileText: { fontSize: 12, color: '#666', marginTop: 2 },
   actions: { flexDirection: 'row', gap: 12 },
   button: { flex: 1, padding: 16, borderRadius: 12, alignItems: 'center' },
   primaryButton: { backgroundColor: '#22C55E' },

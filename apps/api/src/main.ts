@@ -2,7 +2,9 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { mkdirSync } from 'fs';
 import { AppModule } from './app.module';
+import { UPLOAD_DIR } from './common/upload.config';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -24,6 +26,10 @@ async function bootstrap() {
     origin: process.env.ALLOWED_ORIGINS?.split(',') ?? ['http://localhost:8081'],
     credentials: true,
   });
+
+  // 诊断图片静态服务（落盘文件通过 /uploads/ 对外访问）
+  mkdirSync(UPLOAD_DIR, { recursive: true });
+  app.useStaticAssets(UPLOAD_DIR, { prefix: '/uploads/' });
 
   // Swagger documentation
   const config = new DocumentBuilder()

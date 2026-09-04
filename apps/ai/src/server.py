@@ -29,7 +29,7 @@ knowledge = DiseaseKnowledge()
 
 
 class DiagnosisRequest(BaseModel):
-    image_url: str
+    image_urls: list[str] = []
     species: str = "chicken"
     symptoms: list[str] = []
     environment: Optional[dict] = None
@@ -134,6 +134,9 @@ def _parse_json(text: str) -> dict:
 async def diagnose(request: DiagnosisRequest):
     """使用豆包多模态模型进行禽类疾病诊断（结合教材知识）"""
 
+    if not request.image_urls:
+        raise HTTPException(status_code=400, detail="缺少诊断图片")
+
     symptom_text = (
         f"\n症状描述: {'、'.join(request.symptoms)}" if request.symptoms else ""
     )
@@ -178,10 +181,13 @@ async def diagnose(request: DiagnosisRequest):
                         {
                             "role": "user",
                             "content": [
-                                {
-                                    "type": "input_image",
-                                    "image_url": request.image_url,
-                                },
+                                *[
+                                    {
+                                        "type": "input_image",
+                                        "image_url": url,
+                                    }
+                                    for url in request.image_urls
+                                ],
                                 {"type": "input_text", "text": prompt},
                             ],
                         }

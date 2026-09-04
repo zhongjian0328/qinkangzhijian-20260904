@@ -65,7 +65,7 @@ model Diagnosis {
   id            String        @id @default(uuid())
   userId        String
   user          User          @relation(fields: [userId], references: [id])
-  imageUrl      String
+  imageUrls     String[]      @default([])
   species       Species
   symptoms      String[]
   aiResult      Json          // AIResult object

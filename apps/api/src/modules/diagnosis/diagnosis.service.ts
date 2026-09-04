@@ -1,5 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, BadRequestException } from '@nestjs/common';
+import { promises as fs } from 'fs';
+import { join, basename } from 'path';
 import { PrismaService } from '../../common/prisma.service';
+import { UPLOAD_DIR } from '../../common/upload.config';
 import { AIResult } from '@qinkang/types';
 
 // AI 服务返回的原始结构（Python 端为 snake_case）
@@ -12,17 +15,34 @@ interface RawAIResult {
   differential_diagnoses?: { disease: string; probability: number }[];
 }
 
+const EXT_MIME: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  gif: 'image/gif',
+};
+
+function mimeFromUrl(url: string): string {
+  const ext = basename(url).split('.').pop()?.toLowerCase() ?? 'jpg';
+  return EXT_MIME[ext] ?? 'image/jpeg';
+}
+
 @Injectable()
 export class DiagnosisService {
   private readonly logger = new Logger(DiagnosisService.name);
 
   constructor(private prisma: PrismaService) {}
 
-  async create(userId: string, dto: { imageUrl: string; species: string; symptoms: string[] }) {
+  async create(userId: string, dto: { imageUrls: string[]; species: string; symptoms: string[] }) {
+    if (!dto.imageUrls?.length) {
+      throw new BadRequestException('请至少上传一张禽类照片');
+    }
+
     const diagnosis = await this.prisma.diagnosis.create({
       data: {
         userId,
-        imageUrl: dto.imageUrl,
+        imageUrls: dto.imageUrls,
         species: dto.species as any,
         symptoms: dto.symptoms,
         confidence: 0,
@@ -47,16 +67,27 @@ export class DiagnosisService {
     return diagnosis;
   }
 
+  /** 把落盘图片读出来转成 base64 data URI，供豆包多模态接口内联使用 */
+  private async readAsDataUri(url: string): Promise<string> {
+    if (url.startsWith('data:')) return url; // 兼容历史 base64 数据
+    const buf = await fs.readFile(join(UPLOAD_DIR, basename(url)));
+    return `data:${mimeFromUrl(url)};base64,${buf.toString('base64')}`;
+  }
+
   async analyze(
     diagnosisId: string,
-    dto: { imageUrl: string; species: string; symptoms: string[] },
+    dto: { imageUrls: string[]; species: string; symptoms: string[] },
   ): Promise<AIResult> {
+    const imageDataUris = await Promise.all(
+      (dto.imageUrls ?? []).map((url) => this.readAsDataUri(url)),
+    );
+
     const aiServiceUrl = process.env.AI_SERVICE_URL ?? 'http://localhost:5000';
     const response = await fetch(`${aiServiceUrl}/diagnose`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        image_url: dto.imageUrl,
+        image_urls: imageDataUris,
         species: dto.species,
         symptoms: dto.symptoms,
       }),
@@ -83,11 +114,12 @@ export class DiagnosisService {
     return result;
   }
 
-  async findByUser(userId: string) {
+  async findByUser(userId: string, take = 20, skip = 0) {
     return this.prisma.diagnosis.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
-      take: 20,
+      take,
+      skip,
     });
   }
 

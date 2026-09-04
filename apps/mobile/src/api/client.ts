@@ -1,4 +1,11 @@
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
+
+/** 把后端返回的相对路径（如 /uploads/xxx.jpg）解析成完整可访问 URL */
+export function assetUrl(path: string): string {
+  if (!path) return path;
+  if (/^(https?:|data:|file:|blob:)/i.test(path)) return path;
+  return new URL(path, API_BASE_URL).toString();
+}
 
 interface FetchOptions extends RequestInit {
   params?: Record<string, string>;

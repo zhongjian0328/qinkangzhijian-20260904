@@ -11,6 +11,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Diagnosis } from '@qinkang/types';
 import { diagnosisApi } from '../../src/api/diagnosis';
+import { assetUrl } from '../../src/api/client';
 
 const SEVERITY_META: Record<string, { label: string; color: string }> = {
   low: { label: '低风险', color: '#22C55E' },
@@ -85,8 +86,22 @@ export default function DiagnosisDetailScreen() {
         <ActivityIndicator style={styles.loading} color="#22C55E" size="large" />
       ) : (
         <>
-          {diagnosis.imageUrl ? (
-            <Image source={{ uri: diagnosis.imageUrl }} style={styles.image} resizeMode="cover" />
+          {diagnosis.imageUrls?.length ? (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.imageRow}
+              contentContainerStyle={styles.imageRowContent}
+            >
+              {diagnosis.imageUrls.map((uri, i) => (
+                <Image
+                  key={i}
+                  source={{ uri: assetUrl(uri) }}
+                  style={styles.image}
+                  resizeMode="cover"
+                />
+              ))}
+            </ScrollView>
           ) : null}
 
           <View style={styles.statusRow}>
@@ -158,7 +173,9 @@ const styles = StyleSheet.create({
   backText: { fontSize: 16, color: '#22C55E', fontWeight: '600' },
   loading: { marginTop: 60 },
   error: { color: '#EF4444', textAlign: 'center', marginTop: 40 },
-  image: { width: '100%', height: 220, borderRadius: 16, backgroundColor: '#f5f5f5' },
+  imageRow: { marginTop: 4 },
+  imageRowContent: { gap: 8 },
+  image: { width: 260, height: 200, borderRadius: 16, backgroundColor: '#f5f5f5' },
   statusRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
   statusBadge: { fontSize: 14, color: '#666', fontWeight: 'bold' },
   confidence: { fontSize: 14, color: '#22C55E', fontWeight: 'bold' },

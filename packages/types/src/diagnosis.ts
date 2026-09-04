@@ -1,7 +1,7 @@
 export interface Diagnosis {
   id: string;
   userId: string;
-  imageUrl: string;
+  imageUrls: string[];
   species: 'chicken' | 'duck' | 'goose' | 'turkey' | 'other';
   symptoms: string[];
   environmentData?: EnvironmentData;

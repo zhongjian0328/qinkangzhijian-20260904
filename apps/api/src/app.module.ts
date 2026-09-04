@@ -5,6 +5,7 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
 import { DiagnosisModule } from './modules/diagnosis/diagnosis.module';
 import { PoultryHouseModule } from './modules/poultry-house/poultry-house.module';
+import { UploadModule } from './modules/upload/upload.module';
 
 @Module({
   imports: [
@@ -17,6 +18,7 @@ import { PoultryHouseModule } from './modules/poultry-house/poultry-house.module
     UserModule,
     DiagnosisModule,
     PoultryHouseModule,
+    UploadModule,
   ],
 })
 export class AppModule {}

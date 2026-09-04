@@ -6,10 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
   ActivityIndicator,
+  Image,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Diagnosis } from '@qinkang/types';
 import { diagnosisApi } from '../../src/api/diagnosis';
+import { assetUrl } from '../../src/api/client';
 import { useAuthStore } from '../../src/store/auth';
 
 const STATUS_LABEL: Record<string, { text: string; color: string }> = {
@@ -73,7 +75,14 @@ export default function HomeScreen() {
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>最近诊断</Text>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>最近诊断</Text>
+          {diagnoses.length > 0 ? (
+            <TouchableOpacity onPress={() => router.push('/diagnosis/history')}>
+              <Text style={styles.viewAll}>查看全部</Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
         {loading ? (
           <ActivityIndicator style={styles.loading} color="#22C55E" />
         ) : diagnoses.length === 0 ? (
@@ -91,6 +100,13 @@ export default function HomeScreen() {
                 style={styles.diagnosisCard}
                 onPress={() => router.push(`/diagnosis/${item.id}`)}
               >
+                {item.imageUrls?.length ? (
+                  <Image
+                    source={{ uri: assetUrl(item.imageUrls[0]) }}
+                    style={styles.thumb}
+                    resizeMode="cover"
+                  />
+                ) : null}
                 <View style={styles.diagnosisMain}>
                   <Text style={styles.diseaseName} numberOfLines={1}>
                     {disease}
@@ -120,17 +136,30 @@ const styles = StyleSheet.create({
   secondaryActionTitle: { color: '#111' },
   secondaryActionDesc: { color: '#666' },
   section: { padding: 16 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 12 },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  sectionTitle: { fontSize: 18, fontWeight: 'bold' },
+  viewAll: { fontSize: 13, color: '#22C55E', fontWeight: '600' },
   emptyText: { color: '#999', textAlign: 'center', padding: 20 },
   loading: { marginTop: 20 },
   diagnosisCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    padding: 16,
+    padding: 12,
     borderRadius: 12,
     backgroundColor: '#fff',
     marginBottom: 10,
+  },
+  thumb: {
+    width: 52,
+    height: 52,
+    borderRadius: 8,
+    backgroundColor: '#f0f0f0',
+    marginRight: 12,
   },
   diagnosisMain: { flex: 1, marginRight: 12 },
   diseaseName: { fontSize: 16, fontWeight: '600', color: '#111' },

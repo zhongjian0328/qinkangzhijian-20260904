@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { PrismaModule } from './common/prisma.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { UserModule } from './modules/user/user.module';
 import { DiagnosisModule } from './modules/diagnosis/diagnosis.module';
@@ -11,6 +12,7 @@ import { PoultryHouseModule } from './modules/poultry-house/poultry-house.module
       isGlobal: true,
       envFilePath: ['.env', '.env.local'],
     }),
+    PrismaModule,
     AuthModule,
     UserModule,
     DiagnosisModule,

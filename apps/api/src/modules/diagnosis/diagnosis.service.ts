@@ -39,9 +39,10 @@ export class DiagnosisService {
     });
 
     // 后台异步分析，不阻塞创建响应
-    this.analyze(diagnosis.id, dto).catch((err) =>
-      this.logger.error(`诊断分析失败 #${diagnosis.id}: ${err.message}`),
-    );
+    this.analyze(diagnosis.id, dto).catch((err) => {
+      this.logger.error(`诊断分析失败 #${diagnosis.id}: ${err.message}`);
+      return this.markFailed(diagnosis.id).catch(() => {});
+    });
 
     return diagnosis;
   }
@@ -107,6 +108,13 @@ export class DiagnosisService {
         confidence: result.probability,
         status: 'completed',
       },
+    });
+  }
+
+  async markFailed(diagnosisId: string) {
+    return this.prisma.diagnosis.update({
+      where: { id: diagnosisId },
+      data: { status: 'failed' },
     });
   }
 }

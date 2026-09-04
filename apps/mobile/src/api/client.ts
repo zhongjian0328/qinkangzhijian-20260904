@@ -51,7 +51,7 @@ class ApiClient {
     return this.request<T>(path, { ...options, method: 'GET' });
   }
 
-  post<T>(path: string, body?: Record<string, unknown>, options?: FetchOptions) {
+  post<T>(path: string, body?: object, options?: FetchOptions) {
     return this.request<T>(path, {
       ...options,
       method: 'POST',
@@ -59,7 +59,7 @@ class ApiClient {
     });
   }
 
-  put<T>(path: string, body?: Record<string, unknown>, options?: FetchOptions) {
+  put<T>(path: string, body?: object, options?: FetchOptions) {
     return this.request<T>(path, {
       ...options,
       method: 'PUT',

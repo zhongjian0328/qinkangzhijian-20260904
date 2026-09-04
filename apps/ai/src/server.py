@@ -22,6 +22,7 @@ app = FastAPI(title="禽康智检 AI 诊断服务")
 DOUBAO_API_KEY = os.getenv("DOUBAO_API_KEY")
 DOUBAO_MODEL = os.getenv("DOUBAO_MODEL", "doubao-seed-2-1-pro-260628")
 DOUBAO_API_URL = "https://ark.cn-beijing.volces.com/api/v3/responses"
+DOUBAO_TIMEOUT = float(os.getenv("DOUBAO_TIMEOUT", "300"))
 
 # 禽病知识库（《禽病防治教材》42章）
 knowledge = DiseaseKnowledge()
@@ -164,7 +165,7 @@ async def diagnose(request: DiagnosisRequest):
 }}"""
 
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
+        async with httpx.AsyncClient(timeout=DOUBAO_TIMEOUT) as client:
             response = await client.post(
                 DOUBAO_API_URL,
                 headers={
@@ -198,11 +199,11 @@ async def diagnose(request: DiagnosisRequest):
         return DiagnosisResult(**result)
 
     except httpx.HTTPError as e:
-        raise HTTPException(status_code=502, detail=f"AI服务调用失败: {str(e)}")
+        raise HTTPException(status_code=502, detail=f"AI服务调用失败[{type(e).__name__}]: {e}")
     except (json.JSONDecodeError, KeyError, TypeError) as e:
-        raise HTTPException(status_code=502, detail=f"AI返回结果解析失败: {str(e)}")
+        raise HTTPException(status_code=502, detail=f"AI返回结果解析失败: {e}")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"诊断失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"诊断失败: {e}")
 
 
 @app.post("/diagnose/upload")

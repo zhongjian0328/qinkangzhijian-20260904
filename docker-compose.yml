@@ -1,0 +1,61 @@
+# 禽康智检 后端容器编排
+# 用法：
+#   1. cp .env.example .env 并填入 JWT_SECRET / DOUBAO_API_KEY
+#   2. docker compose up -d --build
+# 数据库/上传图片数据持久化到命名卷，重建容器不丢数据。
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-qinkangzhijian}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "5432:5432"
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-qinkangzhijian}?schema=public
+      JWT_SECRET: ${JWT_SECRET:?请在 .env 中设置 JWT_SECRET}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-24h}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-7d}
+      AI_SERVICE_URL: http://ai:5000
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-*}
+      PORT: 3000
+      UPLOAD_DIR: /app/apps/api/uploads
+    volumes:
+      - uploads:/app/apps/api/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "3000:3000"
+
+  ai:
+    build:
+      context: .
+      dockerfile: apps/ai/Dockerfile
+    restart: unless-stopped
+    environment:
+      DOUBAO_API_KEY: ${DOUBAO_API_KEY:?请在 .env 中设置 DOUBAO_API_KEY}
+      DOUBAO_MODEL: ${DOUBAO_MODEL:-doubao-seed-2-1-pro-260628}
+      DOUBAO_TIMEOUT: ${DOUBAO_TIMEOUT:-600}
+    ports:
+      - "5000:5000"
+
+volumes:
+  pgdata:
+  uploads:

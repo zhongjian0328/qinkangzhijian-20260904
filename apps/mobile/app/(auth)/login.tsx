@@ -1,35 +1,71 @@
 import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+import { useRouter, Redirect } from 'expo-router';
+import { useAuthStore } from '../../src/store/auth';
 
 export default function LoginScreen() {
+  const [username, setUsername] = useState('');
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [isLogin, setIsLogin] = useState(true);
   const router = useRouter();
 
+  const token = useAuthStore((s) => s.token);
+  const isLoading = useAuthStore((s) => s.isLoading);
+  const login = useAuthStore((s) => s.login);
+  const register = useAuthStore((s) => s.register);
+
+  if (token) {
+    return <Redirect href="/" />;
+  }
+
   const handleSubmit = async () => {
-    if (!phone || !password) {
-      Alert.alert('提示', '请填写手机号和密码');
+    if (!phone) {
+      Alert.alert('提示', '请填写手机号');
+      return;
+    }
+    if (!isLogin && !username) {
+      Alert.alert('提示', '请填写用户名');
+      return;
+    }
+    if (!password) {
+      Alert.alert('提示', '请填写密码');
       return;
     }
 
     try {
-      // TODO: Replace with actual API call
-      // const res = await api.post(isLogin ? '/auth/login' : '/auth/register', {
-      //   phone,
-      //   password,
-      //   username: phone,
-      // });
-      Alert.alert('提示', '登录功能需要配置API地址');
+      if (isLogin) {
+        await login(phone, password);
+      } else {
+        await register(username, phone, password);
+      }
+      router.replace('/');
     } catch (e) {
-      Alert.alert('错误', '操作失败');
+      Alert.alert(isLogin ? '登录失败' : '注册失败', e instanceof Error ? e.message : '操作失败');
     }
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{isLogin ? '登录' : '注册'}</Text>
+
+      {!isLogin ? (
+        <TextInput
+          style={styles.input}
+          placeholder="用户名"
+          value={username}
+          onChangeText={setUsername}
+          autoCapitalize="none"
+        />
+      ) : null}
 
       <TextInput
         style={styles.input}
@@ -47,8 +83,16 @@ export default function LoginScreen() {
         onChangeText={setPassword}
       />
 
-      <TouchableOpacity style={styles.button} onPress={handleSubmit}>
-        <Text style={styles.buttonText}>{isLogin ? '登录' : '注册'}</Text>
+      <TouchableOpacity
+        style={[styles.button, isLoading && styles.buttonDisabled]}
+        onPress={handleSubmit}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <ActivityIndicator color="#fff" />
+        ) : (
+          <Text style={styles.buttonText}>{isLogin ? '登录' : '注册'}</Text>
+        )}
       </TouchableOpacity>
 
       <TouchableOpacity onPress={() => setIsLogin(!isLogin)}>
@@ -76,8 +120,11 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 52,
     marginTop: 8,
   },
+  buttonDisabled: { opacity: 0.7 },
   buttonText: { fontSize: 16, fontWeight: 'bold', color: '#fff' },
   switchText: { color: '#22C55E', textAlign: 'center', marginTop: 16 },
 });

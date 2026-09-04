@@ -8,6 +8,8 @@ interface AuthState {
   user: User | null;
   token: string | null;
   isLoading: boolean;
+  isHydrated: boolean;
+  hydrate: () => Promise<void>;
   login: (phone: string, password: string) => Promise<void>;
   register: (username: string, phone: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -21,6 +23,33 @@ export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   token: null,
   isLoading: false,
+  isHydrated: false,
+
+  hydrate: async () => {
+    try {
+      const token = await SecureStore.getItemAsync(TOKEN_KEY);
+      if (!token) {
+        set({ isHydrated: true });
+        return;
+      }
+
+      api.setToken(token);
+      set({ token, isHydrated: true });
+
+      try {
+        const user = await authApi.getMe();
+        set({ user });
+      } catch {
+        // 本地 token 失效，清掉
+        await SecureStore.deleteItemAsync(TOKEN_KEY);
+        await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+        api.clearToken();
+        set({ token: null, user: null });
+      }
+    } catch {
+      set({ isHydrated: true });
+    }
+  },
 
   login: async (phone: string, password: string) => {
     set({ isLoading: true });

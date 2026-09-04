@@ -70,6 +70,7 @@ docs/generated/
 .claude/feedback/
 .claude/memory/
 .claude/worktrees/
+.claude/MEMORY.md
 
 # Raw knowledge source (already integrated into apps/ai/src/knowledge/)
 /鸡的疾病知识/

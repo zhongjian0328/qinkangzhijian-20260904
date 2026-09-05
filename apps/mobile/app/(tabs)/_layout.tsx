@@ -6,6 +6,7 @@ import { getTabsForRole, type TabName } from '../../src/tabs';
 const TAB_DEFS: { name: TabName; title: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { name: 'index', title: '首页', icon: 'home' },
   { name: 'diagnose', title: '诊断', icon: 'scan' },
+  { name: 'consult', title: '问诊', icon: 'chatbubbles' },
   { name: 'mall', title: '商城', icon: 'cart' },
   { name: 'knowledge', title: '百科', icon: 'book' },
   { name: 'profile', title: '我的', icon: 'person' },
@@ -25,6 +26,8 @@ const TAB_DEFS: { name: TabName; title: string; icon: keyof typeof Ionicons.glyp
   { name: 'study', title: '学习', icon: 'library' },
 ];
 
+const LEGACY_HIDDEN: string[] = ['houses', 'production', 'services'];
+
 export default function TabLayout() {
   const token = useAuthStore((s) => s.token);
   const user = useAuthStore((s) => s.user);
@@ -33,7 +36,12 @@ export default function TabLayout() {
     return <Redirect href="/login" />;
   }
 
-  const visible = new Set(getTabsForRole(user?.role, user?.subRole));
+  // 可见 Tab 按角色顺序渲染（保证底部栏顺序与说明书一致）
+  const visible = getTabsForRole(user?.role, user?.subRole);
+  const visibleDefs = visible
+    .map((name) => TAB_DEFS.find((t) => t.name === name))
+    .filter(Boolean) as { name: TabName; title: string; icon: keyof typeof Ionicons.glyphMap }[];
+  const hiddenDefs = TAB_DEFS.filter((t) => !visible.includes(t.name));
 
   return (
     <Tabs
@@ -43,13 +51,12 @@ export default function TabLayout() {
         tabBarInactiveTintColor: '#9ca3af',
       }}
     >
-      {TAB_DEFS.map((tab) => (
+      {visibleDefs.map((tab) => (
         <Tabs.Screen
           key={tab.name}
           name={tab.name}
           options={{
             title: tab.title,
-            href: visible.has(tab.name) ? undefined : null,
             tabBarIcon: ({ color, size }) => (
               <Ionicons name={tab.icon} size={size} color={color} />
             ),
@@ -57,10 +64,14 @@ export default function TabLayout() {
         />
       ))}
 
+      {hiddenDefs.map((tab) => (
+        <Tabs.Screen key={tab.name} name={tab.name} options={{ href: null }} />
+      ))}
+
       {/* 旧版 Tab 页面：仍作为路由保留（首页等入口可跳转），但不再出现在底部 Tab 栏 */}
-      <Tabs.Screen name="houses" options={{ href: null }} />
-      <Tabs.Screen name="production" options={{ href: null }} />
-      <Tabs.Screen name="services" options={{ href: null }} />
+      {LEGACY_HIDDEN.map((name) => (
+        <Tabs.Screen key={name} name={name as any} options={{ href: null }} />
+      ))}
     </Tabs>
   );
 }

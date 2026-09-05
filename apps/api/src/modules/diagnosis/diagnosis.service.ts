@@ -14,6 +14,11 @@ interface RawAIResult {
   severity: string;
   differential_diagnoses?: { disease: string; probability: number }[];
   figures?: { title: string; text: string }[];
+  hybrid_infection_risk?: {
+    risk_level: string;
+    infection_combinations: { pathogens: string[]; probability: number }[];
+    core_threat: string;
+  };
 }
 
 const EXT_MIME: Record<string, string> = {
@@ -35,7 +40,10 @@ export class DiagnosisService {
 
   constructor(private prisma: PrismaService) {}
 
-  async create(userId: string, dto: { imageUrls: string[]; species: string; symptoms: string[] }) {
+  async create(
+    userId: string,
+    dto: { imageUrls: string[]; species: string; symptoms: string[]; role?: string; subRole?: string },
+  ) {
     if (!dto.imageUrls?.length) {
       throw new BadRequestException('请至少上传一张禽类照片');
     }
@@ -78,7 +86,7 @@ export class DiagnosisService {
 
   async analyze(
     diagnosisId: string,
-    dto: { imageUrls: string[]; species: string; symptoms: string[] },
+    dto: { imageUrls: string[]; species: string; symptoms: string[]; role?: string; subRole?: string },
   ): Promise<AIResult> {
     const imageDataUris = await Promise.all(
       (dto.imageUrls ?? []).map((url) => this.readAsDataUri(url)),
@@ -92,6 +100,8 @@ export class DiagnosisService {
         image_urls: imageDataUris,
         species: dto.species,
         symptoms: dto.symptoms,
+        role: dto.role ?? 'farmer',
+        sub_role: dto.subRole ?? '',
       }),
     });
 
@@ -111,6 +121,15 @@ export class DiagnosisService {
         probability: d.probability,
       })),
       figures: raw.figures ?? [],
+      hybridInfectionRisk: raw.hybrid_infection_risk
+        ? {
+            riskLevel: raw.hybrid_infection_risk.risk_level,
+            infectionCombinations: (raw.hybrid_infection_risk.infection_combinations ?? []).map(
+              (c) => ({ pathogens: c.pathogens, probability: c.probability }),
+            ),
+            coreThreat: raw.hybrid_infection_risk.core_threat,
+          }
+        : null,
     };
 
     await this.updateAIResult(diagnosisId, result);

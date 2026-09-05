@@ -39,6 +39,7 @@ model User {
   products         Product[]      @relation("MerchantProducts")
   bids             Bid[]          @relation("MerchantBids")
   bulkPurchases    BulkPurchase[]
+  consultSessions  ConsultSession[]
 
   @@map("users")
 }
@@ -302,6 +303,19 @@ model Consultation {
 
   @@index([userId, createdAt])
   @@map("consultations")
+}
+
+model ConsultSession {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String   @default("AI 问诊")
+  messages  Json     // 对话历史 chat_history：[{role, content, imageUrls, diagnosis, createdAt}]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@map("consult_sessions")
 }
 
 model BulkPurchase {

@@ -1,5 +1,6 @@
 export * from './user';
 export * from './diagnosis';
+export * from './consult';
 export * from './poultry-house';
 export * from './production';
 export * from './prevention';

@@ -20,6 +20,18 @@ export interface AIResult {
   severity: 'low' | 'medium' | 'high' | 'critical';
   differentialDiagnoses: DifferentialDiagnosis[];
   figures: FigureNote[];
+  hybridInfectionRisk?: HybridInfectionRisk | null;
+}
+
+export interface HybridInfectionRisk {
+  riskLevel: string;
+  infectionCombinations: InfectionCombination[];
+  coreThreat: string;
+}
+
+export interface InfectionCombination {
+  pathogens: string[];
+  probability: number;
 }
 
 export interface FigureNote {

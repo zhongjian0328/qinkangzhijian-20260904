@@ -14,7 +14,8 @@ export class DiagnosisController {
   @ApiOperation({ summary: '创建AI诊断任务' })
   create(
     @Request() req,
-    @Body() dto: { imageUrls: string[]; species: string; symptoms: string[] },
+    @Body()
+    dto: { imageUrls: string[]; species: string; symptoms: string[]; role?: string; subRole?: string },
   ) {
     return this.diagnosisService.create(req.user.id, dto);
   }

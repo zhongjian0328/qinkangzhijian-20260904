@@ -62,6 +62,7 @@ function delay(ms: number) {
 
 export default function DiagnoseScreen() {
   const token = useAuthStore((s) => s.token);
+  const user = useAuthStore((s) => s.user);
 
   const [imageUris, setImageUris] = useState<string[]>([]);
   const [species, setSpecies] = useState<Species>('chicken');
@@ -157,6 +158,8 @@ export default function DiagnoseScreen() {
         imageUrls: urls,
         species,
         symptoms: parseSymptoms(symptomsText),
+        role: user?.role,
+        subRole: user?.subRole ?? undefined,
       });
       const final = await pollUntilDone(created.id);
       setResult(final);
@@ -175,6 +178,7 @@ export default function DiagnoseScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <Text style={styles.title}>AI 诊断</Text>
       <Text style={styles.subtitle}>选择或拍摄禽类照片进行分析（最多 {MAX_IMAGES} 张）</Text>
+      <Text style={styles.modeHint}>需要多轮追问式问诊？切换底部「问诊」Tab</Text>
 
       {imageUris.length > 0 ? (
         <View style={styles.previewGrid}>
@@ -306,6 +310,26 @@ export default function DiagnoseScreen() {
               ))}
             </View>
           ) : null}
+
+          {result.aiResult.hybridInfectionRisk ? (
+            <View style={styles.resultSection}>
+              <Text style={styles.resultLabel}>混合感染风险评估</Text>
+              <Text style={styles.resultBody}>
+                风险等级：{result.aiResult.hybridInfectionRisk.riskLevel}
+              </Text>
+              {result.aiResult.hybridInfectionRisk.infectionCombinations?.map((c, i) => (
+                <View key={i} style={styles.diffRow}>
+                  <Text style={styles.diffName}>{c.pathogens.join(' + ')}</Text>
+                  <Text style={styles.diffProb}>{(c.probability * 100).toFixed(1)}%</Text>
+                </View>
+              ))}
+              {result.aiResult.hybridInfectionRisk.coreThreat ? (
+                <Text style={styles.resultBody}>
+                  核心威胁：{result.aiResult.hybridInfectionRisk.coreThreat}
+                </Text>
+              ) : null}
+            </View>
+          ) : null}
         </View>
       ) : null}
     </ScrollView>
@@ -317,6 +341,7 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingTop: 60, paddingBottom: 40 },
   title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center' },
   subtitle: { fontSize: 14, color: '#666', textAlign: 'center', marginTop: 8 },
+  modeHint: { fontSize: 12, color: '#22C55E', textAlign: 'center', marginTop: 6 },
   placeholder: {
     height: 200,
     justifyContent: 'center',

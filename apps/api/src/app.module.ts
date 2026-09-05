@@ -17,6 +17,7 @@ import { BulkPurchaseModule } from './modules/bulk-purchase/bulk-purchase.module
 import { LearningModule } from './modules/learning/learning.module';
 import { CertificationModule } from './modules/certification/certification.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { ConsultModule } from './modules/consult/consult.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { NotificationModule } from './modules/notification/notification.module';
     LearningModule,
     CertificationModule,
     NotificationModule,
+    ConsultModule,
   ],
 })
 export class AppModule {}

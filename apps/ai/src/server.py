@@ -30,6 +30,8 @@ class DiagnosisRequest(BaseModel):
     species: str = "chicken"
     symptoms: list[str] = []
     environment: Optional[dict] = None
+    role: str = "farmer"
+    sub_role: str = ""
 
 
 class KnowledgeSearchRequest(BaseModel):
@@ -43,6 +45,14 @@ class FarmingSearchRequest(BaseModel):
     top_k: int = 5
 
 
+class ConsultRequest(BaseModel):
+    messages: list[dict] = []   # 对话历史 [{role, content}]
+    image_urls: list[str] = []  # 本轮图片
+    species: str = "chicken"
+    role: str = "farmer"
+    sub_role: str = ""
+
+
 class DiagnosisResult(BaseModel):
     disease: str
     probability: float
@@ -51,6 +61,7 @@ class DiagnosisResult(BaseModel):
     severity: str
     differential_diagnoses: list[dict]
     figures: list[dict] = []
+    hybrid_infection_risk: Optional[dict] = None
 
 
 class PreventionRequest(BaseModel):
@@ -159,6 +170,36 @@ def _build_reference(symptoms: list[str], species: str) -> str:
     return "\n\n".join(parts)
 
 
+def _role_persona(role: str = "farmer", sub_role: str = "") -> str:
+    """AI 对话问诊的角色人设（对齐说明书 5.1 问诊人设表）。"""
+    if role == "vet" or sub_role == "service":
+        return "你是一位资深执业兽医，正在辅助同行做专业鉴别诊断。回答要专业、直接，给出鉴别诊断要点与实验室确诊建议。"
+    if role == "student":
+        return "你是一位禽病学带教老师，采用引导式教学：先帮学生理清思路、列出应排查方向，再循序渐进给出答案，避免直接给出标准答案。"
+    if role == "institution" and sub_role == "teacher":
+        return "你是一位禽病学教师的教学助手，帮助教师备课、讲解鉴别诊断要点、设计教学案例。"
+    if role == "institution" and sub_role == "research":
+        return "你是一位禽病科研专家，擅长混合感染风险评估、鉴别诊断要点与科研数据解读。"
+    if role == "institution":
+        return "你是一位禽病流行病学与疫情分析专家，擅长区域疫情风险评估、监测预警与处置建议。"
+    if role == "merchant":
+        return "你是一位兽药/疫苗/养殖设备产品专家，擅长结合症状与防控方案推荐合适产品并解答使用问题。"
+    if role == "farmer" and sub_role in ("enterprise", "cooperative"):
+        return "你是一位禽病兽医兼养殖经营顾问，擅长规模化鸡群的批量健康管理与死亡异常排查。"
+    return "你是一位专业的禽病兽医，用通俗易懂、养殖户友好的语言解答鸡群健康问题，给出初步诊断建议。"
+
+
+def _diagnose_role_note(role: str = "farmer", sub_role: str = "") -> str:
+    """诊断 Tab 的角色自适应提示（对齐说明书 5.2）。"""
+    if role == "vet" or sub_role == "service":
+        return "请给出专业的鉴别诊断要点，并在建议中补充实验室确诊检测项目。"
+    if role == "student":
+        return "请给出更详尽的诊断依据（特征病变与病理机制），便于学生学习比对。"
+    if role == "institution" and sub_role == "research":
+        return "请重点评估混合感染风险与鉴别诊断依据。"
+    return ""
+
+
 def _extract_text(data: dict) -> str:
     """从豆包 Responses API 返回中稳健提取文本。"""
     output = data.get("output")
@@ -217,15 +258,16 @@ async def diagnose(request: DiagnosisRequest):
         env_text += f"氨气{env.get('ammonia', 'N/A')}ppm, CO2{env.get('co2', 'N/A')}ppm"
 
     reference = _build_reference(request.symptoms, request.species)
+    role_note = _diagnose_role_note(request.role, request.sub_role)
 
-    prompt = f"""你是一位专业的禽类疾病诊断兽医。请根据图像与症状信息，参考下方《禽病防治教材》知识进行诊断。
+    prompt = f"""你是一位专业的禽类疾病诊断兽医。请根据图像与症状信息，参考下方《禽病防治教材》知识进行诊断。{role_note}
 
 禽种: {request.species}{symptom_text}{env_text}
 
 【教材参考知识】
 {reference}
 
-请仔细观察图像，结合教材知识给出诊断。注意：用药与免疫建议必须遵循教材中的禁忌（如有机磷类严禁内服、肾传支禁用磺胺类等）。请按以下JSON格式返回，仅返回JSON，不要其他内容：
+请仔细观察图像，结合教材知识给出诊断。注意：用药与免疫建议必须遵循教材中的禁忌（如有机磷类严禁内服、肾传支禁用磺胺类等）。description 需包含特征病变与诊断依据。请按以下JSON格式返回，仅返回JSON，不要其他内容：
 {{
   "disease": "疾病名称",
   "probability": 0.0-1.0的置信度,
@@ -234,7 +276,12 @@ async def diagnose(request: DiagnosisRequest):
   "severity": "low/medium/high/critical",
   "differential_diagnoses": [
     {{"disease": "鉴别疾病", "probability": 0.0}}
-  ]
+  ],
+  "hybrid_infection_risk": {{
+    "risk_level": "低/中/高",
+    "infection_combinations": [{{"pathogens": ["病原1", "病原2"], "probability": 0.0}}],
+    "core_threat": "混合感染可能导致的核心威胁"
+  }}
 }}"""
 
     try:
@@ -353,6 +400,89 @@ async def generate_prevention(request: PreventionRequest):
         raise HTTPException(status_code=502, detail=f"AI返回结果解析失败: {e}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"预案生成失败: {e}")
+
+
+@app.post("/consult")
+async def consult(request: ConsultRequest):
+    """AI 对话问诊：多轮对话 + 角色人设 + 知识库注入 + 可选图片。"""
+
+    if not request.messages and not request.image_urls:
+        raise HTTPException(status_code=400, detail="缺少对话内容")
+
+    last_user = ""
+    for m in reversed(request.messages):
+        if isinstance(m, dict) and m.get("role") == "user":
+            last_user = m.get("content") or ""
+            break
+    if not last_user and request.image_urls:
+        last_user = "看图诊断"
+
+    reference = _build_reference([last_user], request.species) if last_user else ""
+    persona = _role_persona(request.role, request.sub_role)
+    history = "\n".join(
+        f"{m.get('role')}: {m.get('content')}" for m in request.messages[-10:] if isinstance(m, dict)
+    )
+
+    prompt = f"""{persona}
+
+请结合用户提供的症状描述、图片与《禽病防治教材》知识，进行多轮对话式问诊。若信息不足以确诊，请主动追问关键细节（日龄、死亡率、粪便、呼吸、产蛋、剖检病变、免疫史等）；若信息充分，给出初步诊断建议。用药与免疫建议必须遵循教材禁忌。
+
+禽种: {request.species}
+
+【对话历史】
+{history or "(无)"}
+
+【教材参考知识】
+{reference or "(无相关章节)"}
+
+请按以下 JSON 格式返回，仅返回 JSON，不要其他内容：
+{{
+  "reply": "自然语言回复（回答/追问，通俗易懂）",
+  "preliminary_diagnosis": "初步诊断（尚无把握则填空字符串）",
+  "confidence": 0.0,
+  "suggestions": ["建议1", "建议2"],
+  "next_steps": "后续建议操作"
+}}"""
+
+    try:
+        async with httpx.AsyncClient(timeout=DOUBAO_TIMEOUT) as client:
+            response = await client.post(
+                DOUBAO_API_URL,
+                headers={
+                    "Authorization": f"Bearer {DOUBAO_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": DOUBAO_MODEL,
+                    "thinking": {"type": "disabled"},
+                    "input": [
+                        {
+                            "role": "user",
+                            "content": [
+                                *[
+                                    {"type": "input_image", "image_url": url}
+                                    for url in request.image_urls
+                                ],
+                                {"type": "input_text", "text": prompt},
+                            ],
+                        }
+                    ],
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
+
+        text = _extract_text(data)
+        if not text:
+            raise HTTPException(status_code=502, detail="AI服务未返回有效文本")
+        return _parse_json(text)
+
+    except httpx.HTTPError as e:
+        raise HTTPException(status_code=502, detail=f"AI服务调用失败[{type(e).__name__}]: {e}")
+    except (json.JSONDecodeError, KeyError, TypeError) as e:
+        raise HTTPException(status_code=502, detail=f"AI返回结果解析失败: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"对话问诊失败: {e}")
 
 
 @app.post("/diagnose/upload")

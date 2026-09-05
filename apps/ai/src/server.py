@@ -148,7 +148,7 @@ async def get_chapter(chapter_id: str):
     }
 
 
-def _build_reference(symptoms: list[str], species: str) -> str:
+def _build_reference(symptoms: list[str], species: str, top_k: int = 3) -> str:
     """构造注入提示词的教材知识：速查表 + 最相关章节（附图谱图注）。"""
     parts: list[str] = []
 
@@ -156,7 +156,7 @@ def _build_reference(symptoms: list[str], species: str) -> str:
     if knowledge.cheatsheet:
         parts.append("## 鉴别诊断速查与用药禁忌\n" + knowledge.cheatsheet)
 
-    chapters = knowledge.retrieve(symptoms=symptoms, species=species, top_k=3)
+    chapters = knowledge.retrieve(symptoms=symptoms, species=species, top_k=top_k)
     if chapters:
         blocks: list[str] = []
         for ch in chapters:
@@ -404,7 +404,12 @@ async def generate_prevention(request: PreventionRequest):
 
 @app.post("/consult")
 async def consult(request: ConsultRequest):
-    """AI 对话问诊：多轮对话 + 角色人设 + 知识库注入 + 可选图片。"""
+    """AI 对话问诊：多轮对话 + 角色人设 + 知识库注入 + 可选图片。
+
+    对齐《禽康智检APP_AI对话问诊开发文档_豆包2.1turbo》第五章提示词设计：
+    问诊流程（倾听→追问→诊断→防控）、重要规则（禽病限定/处方权/危重预警/免责声明）、
+    输出格式（分段/编号/加粗/疾病名【】标注），并按角色动态适配（养殖户/兽医/学生等）。
+    """
 
     if not request.messages and not request.image_urls:
         raise HTTPException(status_code=400, detail="缺少对话内容")
@@ -417,7 +422,8 @@ async def consult(request: ConsultRequest):
     if not last_user and request.image_urls:
         last_user = "看图诊断"
 
-    reference = _build_reference([last_user], request.species) if last_user else ""
+    # 对话问诊对延迟更敏感，注入的教材章节从 3 章收紧到 2 章（速查表始终携带）
+    reference = _build_reference([last_user], request.species, top_k=2) if last_user else ""
     persona = _role_persona(request.role, request.sub_role)
     history = "\n".join(
         f"{m.get('role')}: {m.get('content')}" for m in request.messages[-10:] if isinstance(m, dict)
@@ -425,7 +431,24 @@ async def consult(request: ConsultRequest):
 
     prompt = f"""{persona}
 
-请结合用户提供的症状描述、图片与《禽病防治教材》知识，进行多轮对话式问诊。若信息不足以确诊，请主动追问关键细节（日龄、死亡率、粪便、呼吸、产蛋、剖检病变、免疫史等）；若信息充分，给出初步诊断建议。用药与免疫建议必须遵循教材禁忌。
+你正服务于「禽康智检」AI问诊功能，请遵循以下问诊流程与规则，进行多轮对话式禽病问诊。
+
+【问诊流程】
+1. 先倾听并理解用户对鸡群异常的描述（症状、发病经过、管理情况）。
+2. 若信息不足以确诊，主动、聚焦地追问关键信息：品种/日龄/存栏、发病时间/发病率/死亡率、粪便颜色与性状、呼吸症状、产蛋变化、精神状态、剖检病变、免疫史、用药史、环境（温度/通风/密度/天气变化）。
+3. 信息充分后，给出诊断结论：首要怀疑（附置信度百分比）、次要怀疑、已排除的疾病及排除依据。
+4. 给出防控建议：紧急处理、用药参考、免疫建议、消毒与管理措施、回访建议。
+
+【重要规则】
+- 只回答禽类（鸡）疾病与养殖健康相关问题，不回答无关内容。
+- 你只提供用药参考，不给出处方剂量——处方权属于执业兽医。
+- 高致死性传染病（禽流感、新城疫强毒等）必须强烈建议立即联系当地疫控部门和执业兽医，并做好隔离。
+- 用药与免疫建议必须遵循教材禁忌（有机磷类严禁内服、肾传支禁用磺胺类等）。
+- 不要编造不存在的药品或疗法；涉及用药时提醒休药期与药品说明书。
+
+【输出格式】
+- 分段清晰、适当编号，关键信息加粗，疾病名称用【】标注。
+- 每次回复末尾务必注明：「以上建议由AI生成，仅供参考，确诊请结合实验室检测或执业兽医诊断」。
 
 禽种: {request.species}
 
@@ -437,11 +460,12 @@ async def consult(request: ConsultRequest):
 
 请按以下 JSON 格式返回，仅返回 JSON，不要其他内容：
 {{
-  "reply": "自然语言回复（回答/追问，通俗易懂）",
+  "reply": "自然语言回复（回答/追问，通俗易懂，末尾含免责声明）",
   "preliminary_diagnosis": "初步诊断（尚无把握则填空字符串）",
   "confidence": 0.0,
   "suggestions": ["建议1", "建议2"],
-  "next_steps": "后续建议操作"
+  "next_steps": "后续建议操作",
+  "related_diseases": ["相关疾病1", "相关疾病2"]
 }}"""
 
     try:
@@ -475,7 +499,21 @@ async def consult(request: ConsultRequest):
         text = _extract_text(data)
         if not text:
             raise HTTPException(status_code=502, detail="AI服务未返回有效文本")
-        return _parse_json(text)
+
+        result = _parse_json(text)
+        reply = (result.get("reply") or "").strip()
+        # 免责声明兜底：模型未按格式返回时，代码层强制追加
+        disclaimer = "以上建议由AI生成，仅供参考，确诊请结合实验室检测或执业兽医诊断"
+        if reply and disclaimer not in reply:
+            reply = f"{reply}\n\n{disclaimer}"
+        return {
+            "reply": reply,
+            "preliminary_diagnosis": result.get("preliminary_diagnosis") or "",
+            "confidence": result.get("confidence") or 0.0,
+            "suggestions": result.get("suggestions") or [],
+            "next_steps": result.get("next_steps") or "",
+            "related_diseases": result.get("related_diseases") or [],
+        }
 
     except httpx.HTTPError as e:
         raise HTTPException(status_code=502, detail=f"AI服务调用失败[{type(e).__name__}]: {e}")

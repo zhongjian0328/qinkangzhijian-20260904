@@ -7,6 +7,7 @@ interface RawConsultReply {
   confidence?: number | null;
   suggestions?: string[] | null;
   next_steps?: string | null;
+  related_diseases?: string[] | null;
 }
 
 @Injectable()
@@ -66,6 +67,7 @@ export class ConsultService {
             nextSteps: reply.next_steps ?? '',
           }
         : null,
+      relatedDiseases: reply.related_diseases ?? [],
       createdAt: new Date().toISOString(),
     };
 
@@ -87,6 +89,7 @@ export class ConsultService {
       sessionId: session.id,
       reply: reply.reply,
       diagnosis: assistantMessage.diagnosis,
+      relatedDiseases: reply.related_diseases ?? [],
       messages,
     };
   }
@@ -97,20 +100,32 @@ export class ConsultService {
     role?: string,
     subRole?: string,
   ): Promise<RawConsultReply> {
-    const response = await fetch(`${this.aiUrl()}/consult`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        messages: history.map((m) => ({ role: m.role, content: m.content })),
-        image_urls: imageUrls ?? [],
-        role: role ?? 'farmer',
-        sub_role: subRole ?? '',
-      }),
-    });
-    if (!response.ok) {
-      throw new BadRequestException(`AI问诊返回 ${response.status}: ${await response.text()}`);
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 90000);
+    try {
+      const response = await fetch(`${this.aiUrl()}/consult`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          messages: history.map((m) => ({ role: m.role, content: m.content })),
+          image_urls: imageUrls ?? [],
+          role: role ?? 'farmer',
+          sub_role: subRole ?? '',
+        }),
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        throw new BadRequestException(`AI问诊返回 ${response.status}: ${await response.text()}`);
+      }
+      return response.json();
+    } catch (e) {
+      if ((e as any)?.name === 'AbortError') {
+        throw new BadRequestException('AI问诊响应超时，请稍后重试');
+      }
+      throw e;
+    } finally {
+      clearTimeout(timeout);
     }
-    return response.json();
   }
 
   async listSessions(userId: string) {

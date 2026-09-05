@@ -1,5 +1,5 @@
 // 角色差异化底部 Tab 配置 —— 对齐《禽康智检APP_多角色业务逻辑说明书》第五章「底部导航Tab对照表（统一 5 个）」
-// v3.2：8 角色 × 5 Tab，每角色新增「💬问诊」= AI 对话问诊入口
+// v3.9：8 角色 × 5 Tab，每角色新增「AI问诊」= AI 对话问诊入口（对齐《AI对话问诊开发文档_豆包2.1turbo》）
 import type { MainRole, SubRole } from '@qinkang/types';
 
 export const TAB_NAMES = [

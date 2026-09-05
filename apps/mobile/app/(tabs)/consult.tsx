@@ -11,14 +11,18 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
 } from 'react-native';
+import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
-import { ConsultMessage } from '@qinkang/types';
+import { ConsultMessage, ConsultSession } from '@qinkang/types';
 import { consultApi } from '../../src/api/consult';
 import { diagnosisApi } from '../../src/api/diagnosis';
 import { assetUrl } from '../../src/api/client';
 import { useAuthStore } from '../../src/store/auth';
+
+const QUICK_QUESTIONS = ['鸡拉稀怎么办', '呼吸有啰音', '产蛋下降', '突然死亡', '精神萎靡不吃料'];
 
 function getMime(uri: string): string {
   const ext = uri.split('.').pop()?.split('?')[0]?.toLowerCase();
@@ -53,6 +57,7 @@ function welcomeText(role?: string, subRole?: string | null): string {
 }
 
 export default function ConsultScreen() {
+  const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const token = useAuthStore((s) => s.token);
 
@@ -61,6 +66,9 @@ export default function ConsultScreen() {
   const [input, setInput] = useState('');
   const [images, setImages] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [sessions, setSessions] = useState<ConsultSession[]>([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
   const listRef = useRef<FlatList<ConsultMessage>>(null);
 
   const welcome: ConsultMessage = {
@@ -103,15 +111,38 @@ export default function ConsultScreen() {
     setMessages([]);
     setInput('');
     setImages([]);
+    setShowHistory(false);
   };
 
-  const send = async () => {
-    const content = input.trim();
+  const loadHistory = async () => {
+    setHistoryLoading(true);
+    setShowHistory(true);
+    try {
+      const list = await consultApi.list();
+      setSessions(list ?? []);
+    } catch (e) {
+      Alert.alert('加载失败', e instanceof Error ? e.message : '请稍后重试');
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const loadSession = (session: ConsultSession) => {
+    setSessionId(session.id);
+    setMessages(session.messages ?? []);
+    setInput('');
+    setImages([]);
+    setShowHistory(false);
+    setTimeout(() => listRef.current?.scrollToEnd({ animated: false }), 100);
+  };
+
+  const send = async (override?: string) => {
+    const content = (override ?? input).trim();
     if (!content && images.length === 0) return;
     if (!token || token === 'guest') {
       Alert.alert('请先登录', 'AI 对话问诊需要登录后使用', [
         { text: '取消', style: 'cancel' },
-        { text: '去登录', onPress: () => {} },
+        { text: '去登录', onPress: () => router.replace('/login') },
       ]);
       return;
     }
@@ -148,6 +179,7 @@ export default function ConsultScreen() {
   const renderMessage = ({ item }: { item: ConsultMessage }) => {
     const isUser = item.role === 'user';
     const diag = item.diagnosis;
+    const related = item.relatedDiseases;
     return (
       <View style={[styles.msgRow, isUser ? styles.msgRowUser : styles.msgRowAi]}>
         {!isUser && <Text style={styles.aiAvatar}>🐔</Text>}
@@ -162,6 +194,16 @@ export default function ConsultScreen() {
           <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAi]}>
             <Text style={isUser ? styles.bubbleTextUser : styles.bubbleTextAi}>{item.content}</Text>
           </View>
+
+          {!isUser && related?.length ? (
+            <View style={styles.tagRow}>
+              {related.map((d, i) => (
+                <View key={i} style={styles.tag}>
+                  <Text style={styles.tagText}>🔍 {d}</Text>
+                </View>
+              ))}
+            </View>
+          ) : null}
 
           {!isUser && diag?.preliminaryDiagnosis ? (
             <View style={styles.diagCard}>
@@ -188,6 +230,35 @@ export default function ConsultScreen() {
     );
   };
 
+  const renderSession = ({ item }: { item: ConsultSession }) => {
+    const last = item.messages?.[item.messages.length - 1];
+    const preview = last?.content ?? '';
+    const diag = (item.messages ?? []).find((m) => m.diagnosis?.preliminaryDiagnosis)?.diagnosis;
+    return (
+      <TouchableOpacity style={styles.sessionItem} onPress={() => loadSession(item)}>
+        <View style={styles.sessionMain}>
+          <Text style={styles.sessionTitle} numberOfLines={1}>
+            {item.title || 'AI 问诊'}
+          </Text>
+          <Text style={styles.sessionPreview} numberOfLines={1}>
+            {preview}
+          </Text>
+          {diag?.preliminaryDiagnosis ? (
+            <Text style={styles.sessionDiag} numberOfLines={1}>
+              初步诊断：{diag.preliminaryDiagnosis}
+            </Text>
+          ) : null}
+        </View>
+        <View style={styles.sessionSide}>
+          <Text style={styles.sessionTime}>
+            {new Date(item.updatedAt).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })}
+          </Text>
+          <Text style={styles.sessionCount}>{item.messages?.length ?? 0} 条</Text>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
   return (
     <KeyboardAvoidingView
       style={styles.flex}
@@ -195,58 +266,102 @@ export default function ConsultScreen() {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>AI 问诊</Text>
-        <TouchableOpacity style={styles.newBtn} onPress={newSession}>
-          <Text style={styles.newBtnText}>＋ 新对话</Text>
-        </TouchableOpacity>
-      </View>
-
-      <FlatList
-        ref={listRef}
-        data={data}
-        keyExtractor={(item, i) => String(i)}
-        renderItem={renderMessage}
-        contentContainerStyle={styles.listContent}
-        onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
-        ListFooterComponent={loading ? <ActivityIndicator color="#22C55E" style={{ marginVertical: 12 }} /> : null}
-      />
-
-      <View style={styles.inputBar}>
-        <TouchableOpacity style={styles.imgBtn} onPress={pickImages}>
-          <Text style={styles.imgBtnText}>🖼</Text>
-        </TouchableOpacity>
-        <TextInput
-          style={styles.input}
-          placeholder="描述症状，或追问细节…"
-          placeholderTextColor="#aaa"
-          value={input}
-          onChangeText={setInput}
-          multiline
-        />
-        <TouchableOpacity
-          style={[styles.sendBtn, loading && styles.sendDisabled]}
-          onPress={send}
-          disabled={loading}
-        >
-          <Text style={styles.sendText}>发送</Text>
-        </TouchableOpacity>
-      </View>
-
-      {images.length ? (
-        <View style={styles.pendingImages}>
-          {images.map((uri, i) => (
-            <View key={i} style={styles.pendingWrap}>
-              <Image source={{ uri }} style={styles.pendingImg} />
-              <TouchableOpacity
-                style={styles.pendingRemove}
-                onPress={() => setImages((prev) => prev.filter((u) => u !== uri))}
-              >
-                <Text style={styles.pendingRemoveText}>✕</Text>
-              </TouchableOpacity>
-            </View>
-          ))}
+        <Text style={styles.headerTitle}>AI问诊</Text>
+        <View style={styles.headerBtns}>
+          <TouchableOpacity style={styles.newBtn} onPress={showHistory ? () => setShowHistory(false) : loadHistory}>
+            <Text style={styles.newBtnText}>{showHistory ? '对话' : '历史'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.newBtn} onPress={newSession}>
+            <Text style={styles.newBtnText}>＋ 新对话</Text>
+          </TouchableOpacity>
         </View>
-      ) : null}
+      </View>
+
+      {showHistory ? (
+        <View style={styles.flex}>
+          <Text style={styles.historyHint}>选择一条历史会话继续问诊</Text>
+          {historyLoading ? (
+            <ActivityIndicator color="#22C55E" style={{ marginTop: 24 }} />
+          ) : sessions.length ? (
+            <FlatList
+              data={sessions}
+              keyExtractor={(s) => s.id}
+              renderItem={renderSession}
+              contentContainerStyle={styles.listContent}
+            />
+          ) : (
+            <Text style={styles.emptyText}>暂无问诊历史，开始第一次 AI 问诊吧</Text>
+          )}
+        </View>
+      ) : (
+        <>
+          <FlatList
+            ref={listRef}
+            data={data}
+            keyExtractor={(item, i) => String(i)}
+            renderItem={renderMessage}
+            contentContainerStyle={styles.listContent}
+            onContentSizeChange={() => listRef.current?.scrollToEnd({ animated: false })}
+            ListHeaderComponent={
+              messages.length === 0 ? (
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  style={styles.quickWrap}
+                  contentContainerStyle={styles.quickContent}
+                >
+                  <Text style={styles.quickLabel}>💡 快速提问：</Text>
+                  {QUICK_QUESTIONS.map((q) => (
+                    <TouchableOpacity key={q} style={styles.quickChip} onPress={() => send(q)}>
+                      <Text style={styles.quickChipText}>{q}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              ) : null
+            }
+            ListFooterComponent={
+              loading ? <ActivityIndicator color="#22C55E" style={{ marginVertical: 12 }} /> : null
+            }
+          />
+
+          <View style={styles.inputBar}>
+            <TouchableOpacity style={styles.imgBtn} onPress={pickImages}>
+              <Text style={styles.imgBtnText}>🖼</Text>
+            </TouchableOpacity>
+            <TextInput
+              style={styles.input}
+              placeholder="描述症状，或追问细节…"
+              placeholderTextColor="#aaa"
+              value={input}
+              onChangeText={setInput}
+              multiline
+            />
+            <TouchableOpacity
+              style={[styles.sendBtn, loading && styles.sendDisabled]}
+              onPress={() => send()}
+              disabled={loading}
+            >
+              <Text style={styles.sendText}>发送</Text>
+            </TouchableOpacity>
+          </View>
+
+          {images.length ? (
+            <View style={styles.pendingImages}>
+              {images.map((uri, i) => (
+                <View key={i} style={styles.pendingWrap}>
+                  <Image source={{ uri }} style={styles.pendingImg} />
+                  <TouchableOpacity
+                    style={styles.pendingRemove}
+                    onPress={() => setImages((prev) => prev.filter((u) => u !== uri))}
+                  >
+                    <Text style={styles.pendingRemoveText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          ) : null}
+        </>
+      )}
     </KeyboardAvoidingView>
   );
 }
@@ -263,9 +378,43 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
+  headerBtns: { flexDirection: 'row', gap: 8 },
   newBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, backgroundColor: 'rgba(255,255,255,0.25)' },
   newBtnText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
+  historyHint: { padding: 12, paddingBottom: 4, fontSize: 13, color: '#6b7280' },
+  emptyText: { textAlign: 'center', marginTop: 40, color: '#9ca3af', fontSize: 14 },
+  sessionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 14,
+    marginHorizontal: 16,
+    marginTop: 10,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: '#e5e7eb',
+  },
+  sessionMain: { flex: 1, marginRight: 10 },
+  sessionTitle: { fontSize: 15, fontWeight: 'bold', color: '#1f2937' },
+  sessionPreview: { fontSize: 13, color: '#6b7280', marginTop: 3 },
+  sessionDiag: { fontSize: 12, color: '#22C55E', marginTop: 3, fontWeight: 'bold' },
+  sessionSide: { alignItems: 'flex-end' },
+  sessionTime: { fontSize: 12, color: '#9ca3af' },
+  sessionCount: { fontSize: 11, color: '#9ca3af', marginTop: 4 },
   listContent: { padding: 16, paddingBottom: 8 },
+  quickWrap: { marginBottom: 12 },
+  quickContent: { alignItems: 'center', paddingRight: 8 },
+  quickLabel: { fontSize: 13, color: '#6b7280', marginRight: 4 },
+  quickChip: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#22C55E',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginHorizontal: 3,
+  },
+  quickChipText: { color: '#16a34a', fontSize: 13 },
   msgRow: { flexDirection: 'row', marginBottom: 14 },
   msgRowUser: { justifyContent: 'flex-end' },
   msgRowAi: { justifyContent: 'flex-start' },
@@ -278,6 +427,16 @@ const styles = StyleSheet.create({
   bubbleAi: { backgroundColor: '#fff', borderBottomLeftRadius: 4, borderWidth: StyleSheet.hairlineWidth, borderColor: '#e5e7eb' },
   bubbleTextUser: { color: '#fff', fontSize: 15, lineHeight: 22 },
   bubbleTextAi: { color: '#1f2937', fontSize: 15, lineHeight: 22 },
+  tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 },
+  tag: {
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+    borderRadius: 14,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  tagText: { fontSize: 12, color: '#16a34a', fontWeight: 'bold' },
   diagCard: {
     marginTop: 8,
     padding: 12,

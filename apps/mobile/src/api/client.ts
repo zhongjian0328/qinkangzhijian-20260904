@@ -9,6 +9,7 @@ export function assetUrl(path: string): string {
 
 interface FetchOptions extends RequestInit {
   params?: Record<string, string>;
+  timeoutMs?: number;
 }
 
 class ApiClient {
@@ -28,7 +29,7 @@ class ApiClient {
   }
 
   private async request<T>(path: string, options: FetchOptions = {}): Promise<T> {
-    const { params, ...init } = options;
+    const { params, timeoutMs = 60000, ...init } = options;
 
     const url = new URL(`${this.baseUrl}${path}`);
     if (params) {
@@ -44,14 +45,29 @@ class ApiClient {
       headers['Authorization'] = `Bearer ${this.token}`;
     }
 
-    const response = await fetch(url.toString(), { ...init, headers });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: '请求失败' }));
-      throw new Error(error.message ?? '请求失败');
+    try {
+      const response = await fetch(url.toString(), { ...init, headers, signal: controller.signal });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: '请求失败' }));
+        throw new Error(error.message ?? '请求失败');
+      }
+
+      return response.json();
+    } catch (e) {
+      if ((e as any)?.name === 'AbortError') {
+        throw new Error('请求超时，请检查网络后重试');
+      }
+      if (e instanceof TypeError || (e as any)?.message === 'Network request failed') {
+        throw new Error('网络连接失败，请检查网络后重试');
+      }
+      throw e;
+    } finally {
+      clearTimeout(timer);
     }
-
-    return response.json();
   }
 
   get<T>(path: string, options?: FetchOptions) {

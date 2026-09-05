@@ -10,6 +10,7 @@ export interface SendConsultResponse {
     suggestions: string[];
     nextSteps: string;
   } | null;
+  relatedDiseases?: string[];
   messages: any[];
 }
 

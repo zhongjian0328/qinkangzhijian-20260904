@@ -3,6 +3,7 @@ export interface ConsultMessage {
   content: string;
   imageUrls?: string[];
   diagnosis?: ConsultDiagnosis | null;
+  relatedDiseases?: string[];
   createdAt: string;
 }
 
@@ -29,4 +30,5 @@ export interface ConsultReply {
   confidence?: number | null;
   suggestions?: string[] | null;
   nextSteps?: string | null;
+  relatedDiseases?: string[] | null;
 }

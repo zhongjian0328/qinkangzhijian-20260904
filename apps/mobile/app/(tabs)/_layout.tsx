@@ -6,7 +6,7 @@ import { getTabsForRole, type TabName } from '../../src/tabs';
 const TAB_DEFS: { name: TabName; title: string; icon: keyof typeof Ionicons.glyphMap }[] = [
   { name: 'index', title: '首页', icon: 'home' },
   { name: 'diagnose', title: '诊断', icon: 'scan' },
-  { name: 'consult', title: '问诊', icon: 'chatbubbles' },
+  { name: 'consult', title: 'AI问诊', icon: 'chatbubbles' },
   { name: 'mall', title: '商城', icon: 'cart' },
   { name: 'knowledge', title: '百科', icon: 'book' },
   { name: 'profile', title: '我的', icon: 'person' },

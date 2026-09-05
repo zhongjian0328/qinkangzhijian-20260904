@@ -17,7 +17,7 @@ model User {
   email     String?  @unique
   password  String
   role      Role     @default(farmer)
-  subRole   String?  // small | cooperative | enterprise | cdc | research | service | teacher | learning | cognitive | internship
+  subRole   String?  // small | cooperative | enterprise | service | medicine | equipment | cdc | research | teacher | learning | cognitive | internship
   avatar    String?
   farmId    String?
   createdAt DateTime @default(now())
@@ -34,6 +34,8 @@ model User {
   consultations    Consultation[]
   examRecords      ExamRecord[]
   internLogs       InternLog[]
+  certification    Certification?
+  notifications    Notification[]
 
   @@map("users")
 }
@@ -337,11 +339,44 @@ model InternLog {
   @@map("intern_logs")
 }
 
+model Certification {
+  id           String              @id @default(uuid())
+  userId       String              @unique
+  user         User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type         CertificationType
+  data         Json                // 认证表单字段（按类型）
+  images       String[]            @default([]) // 资质证件图片 URL
+  status       CertificationStatus @default(pending)
+  reviewerNote String?
+  reviewedAt   DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  @@index([status, createdAt])
+  @@map("certifications")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      NotificationType
+  title     String
+  content   String
+  data      Json?            // 关联跳转信息（如 { diagnosisId, orderId }）
+  read      Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  @@index([userId, read, createdAt])
+  @@map("notifications")
+}
+
 enum Role {
   admin
   farmer
   vet
   technician
+  merchant
   institution
   student
 }
@@ -463,4 +498,27 @@ enum ExamType {
 enum InternLogStatus {
   submitted
   reviewed
+}
+
+enum CertificationType {
+  farmer
+  vet
+  merchant
+  institution
+  student
+}
+
+enum CertificationStatus {
+  pending
+  approved
+  rejected
+}
+
+enum NotificationType {
+  warning
+  diagnosis
+  policy
+  order
+  teaching
+  system
 }

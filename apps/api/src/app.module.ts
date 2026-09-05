@@ -13,6 +13,8 @@ import { EnvironmentModule } from './modules/environment/environment.module';
 import { EpidemicModule } from './modules/epidemic/epidemic.module';
 import { CommerceModule } from './modules/commerce/commerce.module';
 import { LearningModule } from './modules/learning/learning.module';
+import { CertificationModule } from './modules/certification/certification.module';
+import { NotificationModule } from './modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -33,6 +35,8 @@ import { LearningModule } from './modules/learning/learning.module';
     EpidemicModule,
     CommerceModule,
     LearningModule,
+    CertificationModule,
+    NotificationModule,
   ],
 })
 export class AppModule {}

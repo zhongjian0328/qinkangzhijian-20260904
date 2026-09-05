@@ -1,13 +1,16 @@
+import { useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import Constants from 'expo-constants';
 import { useAuthStore } from '../../src/store/auth';
+import { notificationApi } from '../../src/api/notification';
 
 const ROLE_LABEL: Record<string, string> = {
   admin: '管理员',
   farmer: '养殖户',
-  vet: '兽医',
+  vet: '兽医服务商',
   technician: '技术员',
+  merchant: '兽药/设备商',
   institution: '机构',
   student: '学生',
 };
@@ -16,13 +19,15 @@ const SUB_ROLE_LABEL: Record<string, string> = {
   small: '小散户',
   cooperative: '合作社',
   enterprise: '养殖企业',
-  cdc: '疫控',
-  research: '科研',
-  service: '服务商',
+  service: '兽医服务',
+  medicine: '兽药商',
+  equipment: '设备商',
+  cdc: '疫控机构',
+  research: '科研院所',
   teacher: '教师',
-  learning: '学习',
+  learning: '学习阶段',
   cognitive: '认知实习',
-  internship: '实习',
+  internship: '顶岗实习',
 };
 
 function roleText(user: { role: string; subRole?: string | null }): string {
@@ -35,6 +40,16 @@ export default function ProfileScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const [unread, setUnread] = useState(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      notificationApi
+        .unreadCount()
+        .then(setUnread)
+        .catch(() => {});
+    }, []),
+  );
 
   const handleLogout = () => {
     Alert.alert('退出登录', '确定要退出当前账号吗？', [
@@ -87,6 +102,23 @@ export default function ProfileScreen() {
           <Text style={styles.infoValue}>{roleText(user)}</Text>
         </View>
       </View>
+
+      <TouchableOpacity style={styles.entryButton} onPress={() => router.push('/notifications')}>
+        <Text style={styles.entryText}>消息通知</Text>
+        <View style={styles.entryRight}>
+          {unread > 0 ? (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unread > 99 ? '99+' : unread}</Text>
+            </View>
+          ) : null}
+          <Text style={styles.entryArrow}>›</Text>
+        </View>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.entryButton} onPress={() => router.push('/certification')}>
+        <Text style={styles.entryText}>身份认证</Text>
+        <Text style={styles.entryArrow}>›</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity style={styles.entryButton} onPress={() => router.push('/prevention')}>
         <Text style={styles.entryText}>我的防控预案</Text>
@@ -152,6 +184,17 @@ const styles = StyleSheet.create({
   },
   entryText: { fontSize: 15, color: '#111', fontWeight: '600' },
   entryArrow: { fontSize: 18, color: '#999' },
+  entryRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  badge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 5,
+  },
+  badgeText: { color: '#fff', fontSize: 11, fontWeight: '700' },
   logoutButton: {
     marginHorizontal: 20,
     marginTop: 8,

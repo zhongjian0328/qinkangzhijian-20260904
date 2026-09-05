@@ -7,4 +7,6 @@ export * from './environment';
 export * from './epidemic';
 export * from './commerce';
 export * from './learning';
+export * from './certification';
+export * from './notification';
 export * from './common';

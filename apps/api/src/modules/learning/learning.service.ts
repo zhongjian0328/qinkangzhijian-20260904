@@ -206,6 +206,17 @@ export class LearningService implements OnModuleInit {
       where: { id },
       data: { mentorComment: comment.trim(), mentorId: user.id, status: 'reviewed' },
     });
+
+    await this.prisma.notification.create({
+      data: {
+        userId: log.userId,
+        type: 'teaching',
+        title: '导师已批注实习日志',
+        content: `您的实习日志《${log.title}》已获导师批注，请查看批注意见。`,
+        data: { internLogId: log.id },
+      },
+    });
+
     return parseInternLog(updated);
   }
 }

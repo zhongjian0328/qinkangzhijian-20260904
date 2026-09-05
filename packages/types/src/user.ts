@@ -1,16 +1,18 @@
-export type MainRole = 'admin' | 'farmer' | 'vet' | 'technician' | 'institution' | 'student';
+export type MainRole = 'admin' | 'farmer' | 'vet' | 'technician' | 'merchant' | 'institution' | 'student';
 
 export type SubRole =
-  | 'small'        // 小散户
-  | 'cooperative'  // 合作社
-  | 'enterprise'   // 养殖企业
-  | 'cdc'          // 疫控
-  | 'research'     // 科研
-  | 'service'      // 服务商
-  | 'teacher'      // 教师
-  | 'learning'     // 学生-学习
+  | 'small'        // 养殖户-小散户/个体养殖户
+  | 'cooperative'  // 养殖户-合作社
+  | 'enterprise'   // 养殖户-养殖企业
+  | 'service'      // 兽医服务商
+  | 'medicine'     // 商家-兽药商
+  | 'equipment'    // 商家-设备商
+  | 'cdc'          // 机构-疫控机构
+  | 'research'     // 机构-科研院所
+  | 'teacher'      // 机构-教师/导师
+  | 'learning'     // 学生-学习阶段
   | 'cognitive'    // 学生-认知实习
-  | 'internship';  // 学生-实习
+  | 'internship';  // 学生-顶岗实习
 
 export interface User {
   id: string;

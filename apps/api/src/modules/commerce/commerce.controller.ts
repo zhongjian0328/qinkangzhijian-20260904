@@ -58,6 +58,12 @@ export class CommerceController {
     return this.commerceService.updateOrderStatus(req.user, id, dto.status);
   }
 
+  @Get('commissions')
+  @ApiOperation({ summary: '兽医佣金汇总（兽医专属）' })
+  getCommissions(@Request() req) {
+    return this.commerceService.getCommissions(req.user);
+  }
+
   // 诊疗服务单
   @Post('service-orders')
   @ApiOperation({ summary: '发起诊疗服务' })

@@ -9,6 +9,8 @@ import {
 import { PrismaService } from '../../common/prisma.service';
 
 const VET_ROLES = ['vet', 'technician', 'admin'];
+const MERCHANT_ROLE = 'merchant';
+const COMMISSION_RATE = 0.1; // 兽医佣金比例 10%
 
 const ORDER_STATUSES = ['pending', 'paid', 'shipped', 'completed', 'cancelled'];
 const SERVICE_ORDER_STATUSES = ['pending', 'accepted', 'in_progress', 'completed', 'cancelled'];
@@ -49,6 +51,10 @@ export class CommerceService implements OnModuleInit {
     return VET_ROLES.includes(user.role);
   }
 
+  private isMerchant(user: AuthedUser): boolean {
+    return user.role === MERCHANT_ROLE;
+  }
+
   // ===== 商品 =====
   async getProducts(category?: string, keyword?: string) {
     const where: any = {};
@@ -70,6 +76,27 @@ export class CommerceService implements OnModuleInit {
       throw new BadRequestException('订单商品不能为空');
     }
     const totalAmount = items.reduce((s: number, i: any) => s + Number(i.price) * Number(i.quantity), 0);
+
+    // 确定履约商家（按商品归属）+ 扣库存/加销量
+    let merchantId: string | null = null;
+    for (const item of items) {
+      if (!item.productId) continue;
+      const product = await this.prisma.product.findUnique({ where: { id: item.productId } });
+      if (!product) continue;
+      if (product.merchantId) merchantId = product.merchantId;
+      if (product.stock < Number(item.quantity)) {
+        throw new BadRequestException(`商品「${product.name}」库存不足`);
+      }
+      await this.prisma.product.update({
+        where: { id: product.id },
+        data: { stock: { decrement: Number(item.quantity) }, sales: { increment: Number(item.quantity) } },
+      });
+    }
+
+    // 兽医佣金：推荐人佣金 = 总额 × 10%
+    const referralVetId = dto.referralVetId ?? null;
+    const commissionAmount = referralVetId ? Number((totalAmount * COMMISSION_RATE).toFixed(2)) : null;
+
     return this.prisma.order.create({
       data: {
         userId: user.id,
@@ -77,6 +104,9 @@ export class CommerceService implements OnModuleInit {
         totalAmount,
         address: dto.address ?? null,
         phone: dto.phone ?? null,
+        merchantId,
+        referralVetId,
+        commissionAmount,
       },
     });
   }
@@ -105,6 +135,30 @@ export class CommerceService implements OnModuleInit {
       if (status !== 'cancelled') throw new ForbiddenException('普通用户仅可取消订单');
     }
     return this.prisma.order.update({ where: { id }, data: { status: status as any } });
+  }
+
+  // ===== 兽医佣金 =====
+  async getCommissions(user: AuthedUser) {
+    if (!this.isVet(user)) throw new ForbiddenException('仅兽医/技术员可查看佣金');
+    const orders = await this.prisma.order.findMany({
+      where: { referralVetId: user.id, commissionAmount: { not: null } },
+      orderBy: { createdAt: 'desc' },
+    });
+    const totalCommission = orders.reduce((s, o) => s + (o.commissionAmount ?? 0), 0);
+    const settledCommission = orders
+      .filter((o) => o.status === 'completed')
+      .reduce((s, o) => s + (o.commissionAmount ?? 0), 0);
+    return {
+      totalCommission: Number(totalCommission.toFixed(2)),
+      settledCommission: Number(settledCommission.toFixed(2)),
+      orders: orders.map((o) => ({
+        orderId: o.id,
+        totalAmount: o.totalAmount,
+        commissionAmount: o.commissionAmount,
+        status: o.status,
+        createdAt: o.createdAt,
+      })),
+    };
   }
 
   // ===== 诊疗服务单 =====

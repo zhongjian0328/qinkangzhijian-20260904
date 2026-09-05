@@ -8,9 +8,8 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import { useFocusEffect } from 'expo-router';
-import { commerceApi } from '../src/api/commerce';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { merchantApi } from '../../src/api/merchant';
 import { Order } from '@qinkang/types';
 
 const STATUS_LABEL: Record<string, string> = {
@@ -20,7 +19,6 @@ const STATUS_LABEL: Record<string, string> = {
   completed: '已完成',
   cancelled: '已取消',
 };
-
 const STATUS_COLOR: Record<string, string> = {
   pending: '#F59E0B',
   paid: '#22C55E',
@@ -29,7 +27,7 @@ const STATUS_COLOR: Record<string, string> = {
   cancelled: '#9CA3AF',
 };
 
-export default function OrdersScreen() {
+export default function MerchantOrdersScreen() {
   const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,7 +35,7 @@ export default function OrdersScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      setOrders(await commerceApi.orders());
+      setOrders(await merchantApi.orders());
     } catch {
       setOrders([]);
     } finally {
@@ -51,15 +49,32 @@ export default function OrdersScreen() {
     }, [load]),
   );
 
-  const cancel = (o: Order) => {
-    Alert.alert('取消订单', '确定取消该订单吗？', [
-      { text: '再想想', style: 'cancel' },
+  const ship = (o: Order) => {
+    Alert.alert('发货', '确认发货？将更新物流状态。', [
+      { text: '取消', style: 'cancel' },
       {
-        text: '取消订单',
+        text: '确认发货',
+        onPress: async () => {
+          try {
+            await merchantApi.shipOrder(o.id, { logisticsCompany: '平台冷链', trackingNo: `YK${Date.now()}` });
+            load();
+          } catch (e) {
+            Alert.alert('操作失败', e instanceof Error ? e.message : '请稍后重试');
+          }
+        },
+      },
+    ]);
+  };
+
+  const refund = (o: Order) => {
+    Alert.alert('退款/售后', '确认退款？订单将取消。', [
+      { text: '取消', style: 'cancel' },
+      {
+        text: '确认退款',
         style: 'destructive',
         onPress: async () => {
           try {
-            await commerceApi.updateOrder(o.id, 'cancelled');
+            await merchantApi.refundOrder(o.id, '商家主动退款');
             load();
           } catch (e) {
             Alert.alert('操作失败', e instanceof Error ? e.message : '请稍后重试');
@@ -75,7 +90,7 @@ export default function OrdersScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.back}>‹ 返回</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>我的订单</Text>
+        <Text style={styles.title}>订单管理</Text>
       </View>
 
       {loading ? (
@@ -89,41 +104,29 @@ export default function OrdersScreen() {
           renderItem={({ item }) => (
             <View style={styles.card}>
               <View style={styles.cardTop}>
-                <Text style={styles.orderTime}>
-                  {new Date(item.createdAt).toLocaleString('zh-CN')}
-                </Text>
+                <Text style={styles.time}>{new Date(item.createdAt).toLocaleString('zh-CN')}</Text>
                 <Text style={[styles.status, { color: STATUS_COLOR[item.status] ?? '#999' }]}>
                   {STATUS_LABEL[item.status] ?? item.status}
                 </Text>
               </View>
               {(item.items as any[]).map((it, i) => (
                 <View key={i} style={styles.itemRow}>
-                  <Text style={styles.itemName} numberOfLines={1}>
-                    {it.name}
-                  </Text>
+                  <Text style={styles.itemName} numberOfLines={1}>{it.name}</Text>
                   <Text style={styles.itemQty}>x{it.quantity}</Text>
-                  <Text style={styles.itemPrice}>¥{(it.price * it.quantity).toFixed(2)}</Text>
                 </View>
               ))}
-              <View style={styles.cardBottom}>
-                <Text style={styles.total}>
-                  共 {item.items.length} 件 · 合计 ¥{item.totalAmount.toFixed(2)}
-                </Text>
-                <View style={styles.bottomActions}>
-                  {['shipped', 'completed', 'cancelled'].includes(item.status) && item.logistics && (item.logistics as any[]).length > 0 ? (
-                    <TouchableOpacity
-                      style={styles.logisticsBtn}
-                      onPress={() => router.push(`/logistics/${item.id}`)}
-                    >
-                      <Text style={styles.logisticsText}>查看物流</Text>
+              <Text style={styles.total}>合计 ¥{item.totalAmount.toFixed(2)}</Text>
+              <View style={styles.actions}>
+                {['pending', 'paid'].includes(item.status) && (
+                  <>
+                    <TouchableOpacity style={styles.shipBtn} onPress={() => ship(item)}>
+                      <Text style={styles.shipText}>发货</Text>
                     </TouchableOpacity>
-                  ) : null}
-                  {item.status === 'pending' ? (
-                    <TouchableOpacity style={styles.cancelBtn} onPress={() => cancel(item)}>
-                      <Text style={styles.cancelText}>取消</Text>
+                    <TouchableOpacity style={styles.refundBtn} onPress={() => refund(item)}>
+                      <Text style={styles.refundText}>退款</Text>
                     </TouchableOpacity>
-                  ) : null}
-                </View>
+                  </>
+                )}
               </View>
             </View>
           )}
@@ -142,38 +145,16 @@ const styles = StyleSheet.create({
   list: { paddingHorizontal: 20, paddingBottom: 40 },
   empty: { textAlign: 'center', color: '#999', marginTop: 40 },
   card: { backgroundColor: '#fff', borderRadius: 12, padding: 16, marginBottom: 10 },
-  cardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
-  orderTime: { fontSize: 12, color: '#999' },
+  cardTop: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
+  time: { fontSize: 12, color: '#999' },
   status: { fontSize: 13, fontWeight: 'bold' },
-  itemRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 5 },
+  itemRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
   itemName: { flex: 1, fontSize: 14, color: '#111' },
-  itemQty: { fontSize: 13, color: '#666', marginHorizontal: 10 },
-  itemPrice: { fontSize: 14, color: '#111', fontWeight: '500' },
-  cardBottom: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 10,
-    paddingTop: 10,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#eee',
-  },
-  bottomActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  total: { fontSize: 14, fontWeight: 'bold', color: '#111' },
-  logisticsBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#3B82F6',
-  },
-  logisticsText: { fontSize: 13, color: '#3B82F6', fontWeight: '600' },
-  cancelBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#EF4444',
-  },
-  cancelText: { fontSize: 13, color: '#EF4444', fontWeight: '600' },
+  itemQty: { fontSize: 13, color: '#666' },
+  total: { fontSize: 14, fontWeight: 'bold', color: '#111', marginTop: 8, textAlign: 'right' },
+  actions: { flexDirection: 'row', justifyContent: 'flex-end', gap: 8, marginTop: 10 },
+  shipBtn: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 8, backgroundColor: '#22C55E' },
+  shipText: { color: '#fff', fontSize: 13, fontWeight: '600' },
+  refundBtn: { paddingHorizontal: 16, paddingVertical: 7, borderRadius: 8, borderWidth: 1, borderColor: '#EF4444' },
+  refundText: { color: '#EF4444', fontSize: 13, fontWeight: '600' },
 });

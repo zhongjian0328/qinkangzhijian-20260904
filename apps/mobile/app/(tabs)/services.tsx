@@ -7,6 +7,8 @@ export default function ServicesScreen() {
   const router = useRouter();
   const user = useAuthStore((s) => s.user);
   const isVet = !!user && ['vet', 'technician', 'admin'].includes(user.role);
+  const isMerchant = !!user && user.role === 'merchant';
+  const isFarmer = !!user && user.role === 'farmer';
 
   return (
     <View style={styles.container}>
@@ -60,6 +62,35 @@ export default function ServicesScreen() {
           <Text style={styles.arrow}>›</Text>
         </TouchableOpacity>
 
+        {isMerchant ? (
+          <>
+            <Text style={styles.sectionTitle}>商家工作台</Text>
+            <TouchableOpacity style={styles.card} onPress={() => router.push('/merchant')}>
+              <View style={styles.iconBox}>
+                <Ionicons name="storefront-outline" size={26} color="#22C55E" />
+              </View>
+              <View style={styles.cardText}>
+                <Text style={styles.cardTitle}>商家工作台</Text>
+                <Text style={styles.cardDesc}>商品上架 · 订单发货 · 大宗采购报价</Text>
+              </View>
+              <Text style={styles.arrow}>›</Text>
+            </TouchableOpacity>
+          </>
+        ) : null}
+
+        {isFarmer ? (
+          <TouchableOpacity style={styles.card} onPress={() => router.push('/bulk-purchase')}>
+            <View style={styles.iconBox}>
+              <Ionicons name="pricetags-outline" size={26} color="#F59E0B" />
+            </View>
+            <View style={styles.cardText}>
+              <Text style={styles.cardTitle}>大宗采购</Text>
+              <Text style={styles.cardDesc}>发布询价单，多家供应商竞价比价</Text>
+            </View>
+            <Text style={styles.arrow}>›</Text>
+          </TouchableOpacity>
+        ) : null}
+
         {isVet ? (
           <>
             <Text style={styles.sectionTitle}>兽医工作台</Text>
@@ -80,6 +111,16 @@ export default function ServicesScreen() {
               <View style={styles.cardText}>
                 <Text style={styles.cardTitle}>咨询大厅</Text>
                 <Text style={styles.cardDesc}>回复养殖户的在线咨询</Text>
+              </View>
+              <Text style={styles.arrow}>›</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.card} onPress={() => router.push('/commissions')}>
+              <View style={styles.iconBox}>
+                <Ionicons name="cash-outline" size={26} color="#22C55E" />
+              </View>
+              <View style={styles.cardText}>
+                <Text style={styles.cardTitle}>我的佣金</Text>
+                <Text style={styles.cardDesc}>查看诊疗方案推荐返佣</Text>
               </View>
               <Text style={styles.arrow}>›</Text>
             </TouchableOpacity>

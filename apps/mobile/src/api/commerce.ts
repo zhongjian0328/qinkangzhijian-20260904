@@ -7,6 +7,7 @@ import {
   CreateOrderInput,
   CreateServiceOrderInput,
   CreateConsultationInput,
+  CommissionSummary,
 } from '@qinkang/types';
 
 export const commerceApi = {
@@ -20,6 +21,7 @@ export const commerceApi = {
   orders: () => api.get<Order[]>('/commerce/orders'),
   updateOrder: (id: string, status: string) =>
     api.put<Order>(`/commerce/orders/${id}`, { status }),
+  commissions: () => api.get<CommissionSummary>('/commerce/commissions'),
 
   // 诊疗服务单
   createServiceOrder: (data: CreateServiceOrderInput) =>

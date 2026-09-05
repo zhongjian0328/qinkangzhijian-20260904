@@ -34,6 +34,15 @@ export default function RootLayout() {
       <Stack.Screen name="service" />
       <Stack.Screen name="consult" />
       <Stack.Screen name="consult/[id]" />
+      <Stack.Screen name="merchant" />
+      <Stack.Screen name="merchant/products" />
+      <Stack.Screen name="merchant/orders" />
+      <Stack.Screen name="merchant/bulk" />
+      <Stack.Screen name="bulk-purchase" />
+      <Stack.Screen name="bulk-purchase/new" />
+      <Stack.Screen name="bulk-purchase/[id]" />
+      <Stack.Screen name="logistics/[orderId]" />
+      <Stack.Screen name="commissions" />
     </Stack>
   );
 }

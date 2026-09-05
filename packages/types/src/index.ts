@@ -6,6 +6,7 @@ export * from './prevention';
 export * from './environment';
 export * from './epidemic';
 export * from './commerce';
+export * from './merchant';
 export * from './learning';
 export * from './certification';
 export * from './notification';

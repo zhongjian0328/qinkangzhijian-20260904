@@ -5,10 +5,13 @@ export type ConsultationStatus = 'active' | 'closed';
 
 export interface Product {
   id: string;
+  merchantId?: string | null;
   name: string;
   category: string;
   price: number;
+  promoPrice?: number | null;
   stock: number;
+  sales: number;
   unit: string;
   description?: string | null;
   image?: string | null;
@@ -23,6 +26,12 @@ export interface OrderItem {
   quantity: number;
 }
 
+export interface LogisticsEvent {
+  status: string;
+  desc: string;
+  time: string;
+}
+
 export interface Order {
   id: string;
   userId: string;
@@ -31,6 +40,10 @@ export interface Order {
   status: OrderStatus;
   address?: string | null;
   phone?: string | null;
+  merchantId?: string | null;
+  referralVetId?: string | null;
+  commissionAmount?: number | null;
+  logistics?: LogisticsEvent[] | null;
   createdAt: string;
 }
 
@@ -67,6 +80,21 @@ export interface CreateOrderInput {
   items: OrderItem[];
   address?: string | null;
   phone?: string | null;
+  referralVetId?: string | null;
+}
+
+export interface Commission {
+  orderId: string;
+  totalAmount: number;
+  commissionAmount: number;
+  status: OrderStatus;
+  createdAt: string;
+}
+
+export interface CommissionSummary {
+  totalCommission: number;
+  settledCommission: number;
+  orders: Commission[];
 }
 
 export interface CreateServiceOrderInput {

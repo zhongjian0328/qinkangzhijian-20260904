@@ -1,7 +1,7 @@
 {
   "name": "qinkangzhijian",
   "private": true,
-  "version": "3.4.0",
+  "version": "3.5.0",
   "description": "禽康智检APP - AI辅助禽类疾病诊断系统",
   "scripts": {
     "dev": "turbo run dev",

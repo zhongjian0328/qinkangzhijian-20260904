@@ -144,7 +144,7 @@ export default function ProfileScreen() {
         <Text style={styles.logoutText}>退出登录</Text>
       </TouchableOpacity>
 
-      <Text style={styles.version}>禽康智检 v{Constants.expoConfig?.version ?? '3.4.0'}</Text>
+      <Text style={styles.version}>禽康智检 v{Constants.expoConfig?.version ?? '3.5.0'}</Text>
     </View>
   );
 }

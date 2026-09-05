@@ -22,6 +22,7 @@ import { PolicyModule } from './modules/policy/policy.module';
 import { AnnotationModule } from './modules/annotation/annotation.module';
 import { CollaborationModule } from './modules/collaboration/collaboration.module';
 import { CustomerModule } from './modules/customer/customer.module';
+import { ImmunizationModule } from './modules/immunization/immunization.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { CustomerModule } from './modules/customer/customer.module';
     AnnotationModule,
     CollaborationModule,
     CustomerModule,
+    ImmunizationModule,
   ],
 })
 export class AppModule {}

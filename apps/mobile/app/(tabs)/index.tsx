@@ -74,6 +74,15 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
+      {user?.role === 'farmer' ? (
+        <View style={styles.quickActions}>
+          <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/immunization')}>
+            <Text style={[styles.actionTitle, styles.secondaryActionTitle]}>💉 免疫记录</Text>
+            <Text style={[styles.actionDesc, styles.secondaryActionDesc]}>疫苗接种记录与到期提醒</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>最近诊断</Text>

@@ -46,6 +46,7 @@ model User {
   collaborations    Collaboration[]  @relation("CollabOwner")
   collabMessages    CollabMessage[]  @relation("CollabMessageUser")
   customers         Customer[]       @relation("CustomerOwner")
+  immunizations     Immunization[]
 
   @@map("users")
 }
@@ -66,6 +67,7 @@ model PoultryHouse {
   alerts        Alert[]
   batches       Batch[]
   environmentTests EnvironmentTest[]
+  immunizations Immunization[]
 
   @@map("poultry_houses")
 }
@@ -185,6 +187,7 @@ model Batch {
   updatedAt DateTime @updatedAt
 
   dailyRecords DailyRecord[]
+  immunizations Immunization[]
 
   @@index([userId, createdAt])
   @@map("batches")
@@ -238,6 +241,33 @@ model FollowUp {
 
   @@index([planId, createdAt])
   @@map("follow_ups")
+}
+
+model Immunization {
+  id             String             @id @default(uuid())
+  userId         String
+  user           User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  houseId        String?
+  house          PoultryHouse?      @relation(fields: [houseId], references: [id], onDelete: SetNull)
+  batchId        String?
+  batch          Batch?             @relation(fields: [batchId], references: [id], onDelete: SetNull)
+  vaccineName    String             // 疫苗名称
+  disease        String?            // 预防疾病
+  method         ImmunizationMethod @default(injection)
+  dosage         String?            // 剂量
+  immunizedCount Int                @default(0)
+  administeredAt DateTime?          // 实际免疫日期
+  nextDueAt      DateTime?          // 下次应免疫日期（到期提醒）
+  operator       String?            // 操作人/兽医
+  vaccineBatch   String?            // 疫苗批号
+  manufacturer   String?            // 生产厂家
+  status         ImmunizationStatus @default(planned)
+  notes          String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+
+  @@index([userId, status, nextDueAt])
+  @@map("immunizations")
 }
 
 model Product {
@@ -722,4 +752,19 @@ enum CustomerLevel {
   vip
   regular
   potential
+}
+
+enum ImmunizationMethod {
+  injection
+  water
+  drop_eye
+  drop_nose
+  spray
+  other
+}
+
+enum ImmunizationStatus {
+  planned
+  completed
+  overdue
 }

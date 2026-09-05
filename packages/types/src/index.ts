@@ -16,3 +16,4 @@ export * from './policy';
 export * from './annotation';
 export * from './collaboration';
 export * from './customer';
+export * from './immunization';

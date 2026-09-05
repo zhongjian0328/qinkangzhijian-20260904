@@ -29,6 +29,16 @@ _TITLE_RE = re.compile(
     re.MULTILINE,
 )
 
+# 图注中的图号（如 "图2-33"），用于映射到 images/ 下的 figX-YYY.jpg
+_FIGURE_RE = re.compile(r"图(\d+)-(\d+)")
+
+# 图谱文件名 -> 展示名
+_ATLAS_NAMES = {
+    "chuanranbing-tupu": "传染病图谱",
+    "jishengchong-tupu": "寄生虫图谱",
+    "putongbing-tupu": "普通病图谱",
+}
+
 
 @dataclass
 class Chapter:
@@ -126,6 +136,7 @@ class DiseaseKnowledge(_MarkdownKnowledge):
 
     def __init__(self, base_dir: Path = KNOWLEDGE_DIR) -> None:
         self.atlas: list[tuple[str, str]] = []   # [(病种标题, 图注正文)]
+        self.atlas_files: dict[str, list[tuple[str, str]]] = {}  # 图谱文件名 stem -> [(病种标题, 图注正文)]
         self.appendix: dict[str, str] = {}       # 附录名 -> 正文
         self.manifest = ""                        # 图号 -> 文件/页码索引
         super().__init__(base_dir)
@@ -134,7 +145,9 @@ class DiseaseKnowledge(_MarkdownKnowledge):
     def _load_extras(self, base_dir: Path) -> None:
         atlas_dir = base_dir / "atlas"
         for path in sorted(atlas_dir.glob("*.md")):
-            self.atlas.extend(_parse_sections(path.read_text(encoding="utf-8")))
+            sections = _parse_sections(path.read_text(encoding="utf-8"))
+            self.atlas.extend(sections)
+            self.atlas_files[path.stem] = sections
 
         appendix_dir = base_dir / "appendix"
         for path in sorted(appendix_dir.glob("*.md")):
@@ -162,6 +175,32 @@ class DiseaseKnowledge(_MarkdownKnowledge):
                 if len(results) >= top_k:
                     break
         return results
+
+    def atlas_index(self) -> dict:
+        """结构化图谱索引：3 本图谱 -> 病种 -> 图注 + 图号映射的图片文件名。"""
+        atlases: list[dict] = []
+        for stem, sections in self.atlas_files.items():
+            diseases: list[dict] = []
+            for title, body in sections:
+                clean_title = re.sub(r"[（(].*?[)）]", "", title).strip()
+                figures: list[dict] = []
+                for line in body.splitlines():
+                    line = line.strip()
+                    if not line:
+                        continue
+                    text = line.lstrip("- ").strip()
+                    m = _FIGURE_RE.search(text)
+                    figures.append({
+                        "text": text,
+                        "file": f"fig{m.group(1)}-{int(m.group(2)):03d}.jpg" if m else None,
+                    })
+                diseases.append({"title": clean_title, "figures": figures})
+            atlases.append({
+                "id": stem,
+                "name": _ATLAS_NAMES.get(stem, stem),
+                "diseases": diseases,
+            })
+        return {"atlases": atlases, "total": sum(len(a["diseases"]) for a in atlases)}
 
 
 class FarmingKnowledge(_MarkdownKnowledge):

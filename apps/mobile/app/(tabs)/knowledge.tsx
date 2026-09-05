@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { knowledgeApi, KnowledgeSearchResult } from '../../src/api/knowledge';
 
 type Tab = 'disease' | 'farming';
@@ -64,6 +65,17 @@ export default function KnowledgeScreen() {
       <View style={styles.header}>
         <Text style={styles.title}>养鸡知识库</Text>
         <Text style={styles.subtitle}>禽病防治教材 62 章 · 养鸡疑难 300 问</Text>
+      </View>
+
+      <View style={styles.quickRow}>
+        <TouchableOpacity style={styles.quickCard} onPress={() => router.push('/atlas')}>
+          <Ionicons name="images-outline" size={22} color="#22C55E" />
+          <Text style={styles.quickLabel}>图谱百科</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.quickCard} onPress={() => router.push('/quiz')}>
+          <Ionicons name="school-outline" size={22} color="#22C55E" />
+          <Text style={styles.quickLabel}>题库测验</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.tabRow}>
@@ -150,6 +162,20 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 12 },
   title: { fontSize: 24, fontWeight: 'bold' },
   subtitle: { fontSize: 13, color: '#999', marginTop: 4 },
+  quickRow: { flexDirection: 'row', gap: 12, paddingHorizontal: 20, marginBottom: 12 },
+  quickCard: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    paddingVertical: 14,
+    borderWidth: 1,
+    borderColor: '#e6f7ec',
+  },
+  quickLabel: { fontSize: 15, fontWeight: '600', color: '#111' },
   tabRow: {
     flexDirection: 'row',
     marginHorizontal: 20,

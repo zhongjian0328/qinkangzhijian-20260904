@@ -11,6 +11,8 @@ import { ProductionModule } from './modules/production/production.module';
 import { PreventionModule } from './modules/prevention/prevention.module';
 import { EnvironmentModule } from './modules/environment/environment.module';
 import { EpidemicModule } from './modules/epidemic/epidemic.module';
+import { CommerceModule } from './modules/commerce/commerce.module';
+import { LearningModule } from './modules/learning/learning.module';
 
 @Module({
   imports: [
@@ -29,6 +31,8 @@ import { EpidemicModule } from './modules/epidemic/epidemic.module';
     PreventionModule,
     EnvironmentModule,
     EpidemicModule,
+    CommerceModule,
+    LearningModule,
   ],
 })
 export class AppModule {}

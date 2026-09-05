@@ -117,6 +117,12 @@ async def get_figures(disease: str = ""):
     return {"total": len(matches), "results": matches}
 
 
+@app.get("/knowledge/atlas")
+async def get_atlas_index():
+    """返回结构化图谱索引（3 本图谱 -> 病种 -> 图注 + 图号映射的图片文件名），供图谱百科浏览。"""
+    return knowledge.atlas_index()
+
+
 @app.get("/knowledge/chapter/{chapter_id}")
 async def get_chapter(chapter_id: str):
     """按章节 id 返回全文（疾病教材或养鸡问答），疾病章节附图谱图注。"""

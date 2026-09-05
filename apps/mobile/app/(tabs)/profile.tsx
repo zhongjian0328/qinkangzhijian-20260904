@@ -93,6 +93,11 @@ export default function ProfileScreen() {
         <Text style={styles.entryArrow}>›</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity style={styles.entryButton} onPress={() => router.push('/intern')}>
+        <Text style={styles.entryText}>实习日志</Text>
+        <Text style={styles.entryArrow}>›</Text>
+      </TouchableOpacity>
+
       <TouchableOpacity style={styles.entryButton} onPress={() => router.push('/epidemic')}>
         <Text style={styles.entryText}>疫情上报</Text>
         <Text style={styles.entryArrow}>›</Text>
@@ -107,7 +112,7 @@ export default function ProfileScreen() {
         <Text style={styles.logoutText}>退出登录</Text>
       </TouchableOpacity>
 
-      <Text style={styles.version}>禽康智检 v{Constants.expoConfig?.version ?? '2.0.0'}</Text>
+      <Text style={styles.version}>禽康智检 v{Constants.expoConfig?.version ?? '2.5.0'}</Text>
     </View>
   );
 }

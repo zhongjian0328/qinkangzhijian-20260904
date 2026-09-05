@@ -203,6 +203,12 @@ export default function DiagnosisDetailScreen() {
               >
                 <Text style={styles.planSecondaryText}>查看防控预案与回访</Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.planSecondary}
+                onPress={() => router.push('/service')}
+              >
+                <Text style={styles.planSecondaryText}>下单诊疗服务</Text>
+              </TouchableOpacity>
             </View>
           ) : null}
         </>

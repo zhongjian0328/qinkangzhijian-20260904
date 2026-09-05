@@ -57,6 +57,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="services"
+        options={{
+          title: '服务',
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="grid-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="profile"
         options={{
           title: '我的',

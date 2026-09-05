@@ -5,4 +5,6 @@ export * from './production';
 export * from './prevention';
 export * from './environment';
 export * from './epidemic';
+export * from './commerce';
+export * from './learning';
 export * from './common';

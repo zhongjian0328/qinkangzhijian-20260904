@@ -29,6 +29,11 @@ model User {
   preventionPlans PreventionPlan[]
   environmentTests EnvironmentTest[]
   epidemicRecords  EpidemicRecord[]
+  orders           Order[]
+  serviceOrders    ServiceOrder[]
+  consultations    Consultation[]
+  examRecords      ExamRecord[]
+  internLogs       InternLog[]
 
   @@map("users")
 }
@@ -223,6 +228,115 @@ model FollowUp {
   @@map("follow_ups")
 }
 
+model Product {
+  id           String   @id @default(uuid())
+  name         String
+  category     String
+  price        Float
+  stock        Int      @default(0)
+  unit         String
+  description  String?
+  image        String?
+  manufacturer String?
+  createdAt    DateTime @default(now())
+
+  @@map("products")
+}
+
+model Order {
+  id          String      @id @default(uuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items       Json        // [{productId, name, price, quantity}]
+  totalAmount Float
+  status      OrderStatus @default(pending)
+  address     String?
+  phone       String?
+  createdAt   DateTime    @default(now())
+
+  @@index([userId, createdAt])
+  @@map("orders")
+}
+
+model ServiceOrder {
+  id            String            @id @default(uuid())
+  userId        String
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  serviceType   ServiceType
+  description   String?
+  address       String?
+  appointmentAt DateTime?
+  status        ServiceOrderStatus @default(pending)
+  vetId         String?
+  price         Float?
+  createdAt     DateTime          @default(now())
+
+  @@index([userId, createdAt])
+  @@map("service_orders")
+}
+
+model Consultation {
+  id        String             @id @default(uuid())
+  userId    String
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vetId     String?
+  subject   String
+  messages  Json               // [{role, content, timestamp}]
+  status    ConsultationStatus @default(active)
+  createdAt DateTime           @default(now())
+
+  @@index([userId, createdAt])
+  @@map("consultations")
+}
+
+model Question {
+  id          String       @id @default(uuid())
+  type        QuestionType
+  chapter     String?
+  difficulty  Difficulty   @default(medium)
+  question    String
+  options     String       // JSON 数组
+  answer      String       // JSON 数组（正确选项下标）
+  explanation String?
+  createdAt   DateTime     @default(now())
+
+  @@map("questions")
+}
+
+model ExamRecord {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type       ExamType @default(practice)
+  chapter    String?
+  totalScore Int
+  score      Int
+  answers    String   // JSON
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@map("exam_records")
+}
+
+model InternLog {
+  id               String          @id @default(uuid())
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title            String
+  content          String
+  images           String?         // JSON 数组（图片 URL）
+  studentDiagnosis String?
+  mentorComment    String?
+  mentorId         String?
+  status           InternLogStatus @default(submitted)
+  logDate          DateTime
+  createdAt        DateTime        @default(now())
+
+  @@index([userId, createdAt])
+  @@index([status, logDate])
+  @@map("intern_logs")
+}
+
 enum Role {
   admin
   farmer
@@ -300,4 +414,53 @@ enum EpidemicLevel {
   suspected
   confirmed
   controlled
+}
+
+enum OrderStatus {
+  pending
+  paid
+  shipped
+  completed
+  cancelled
+}
+
+enum ServiceType {
+  on_site
+  online
+  lab_test
+}
+
+enum ServiceOrderStatus {
+  pending
+  accepted
+  in_progress
+  completed
+  cancelled
+}
+
+enum ConsultationStatus {
+  active
+  closed
+}
+
+enum QuestionType {
+  single
+  multiple
+  judge
+}
+
+enum Difficulty {
+  easy
+  medium
+  hard
+}
+
+enum ExamType {
+  practice
+  mock
+}
+
+enum InternLogStatus {
+  submitted
+  reviewed
 }

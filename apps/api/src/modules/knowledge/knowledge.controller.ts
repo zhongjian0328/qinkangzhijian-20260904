@@ -28,6 +28,12 @@ export class KnowledgeController {
     return this.knowledgeService.figures(disease ?? '');
   }
 
+  @Get('atlas')
+  @ApiOperation({ summary: '结构化图谱索引（图谱百科）' })
+  atlas() {
+    return this.knowledgeService.atlas();
+  }
+
   @Get('chapter/:id')
   @ApiOperation({ summary: '按章节 id 返回全文（附图谱图注）' })
   chapter(@Param('id') id: string) {

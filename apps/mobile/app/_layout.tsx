@@ -28,6 +28,12 @@ export default function RootLayout() {
       <Stack.Screen name="production/[id]" />
       <Stack.Screen name="prevention/[diagnosisId]" />
       <Stack.Screen name="environment/[houseId]" />
+      <Stack.Screen name="mall" />
+      <Stack.Screen name="mall/[id]" />
+      <Stack.Screen name="orders" />
+      <Stack.Screen name="service" />
+      <Stack.Screen name="consult" />
+      <Stack.Screen name="consult/[id]" />
     </Stack>
   );
 }

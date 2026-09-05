@@ -4,7 +4,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { mkdirSync } from 'fs';
 import { AppModule } from './app.module';
-import { UPLOAD_DIR } from './common/upload.config';
+import { UPLOAD_DIR, ATLAS_DIR } from './common/upload.config';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -30,6 +30,9 @@ async function bootstrap() {
   // 诊断图片静态服务（落盘文件通过 /uploads/ 对外访问）
   mkdirSync(UPLOAD_DIR, { recursive: true });
   app.useStaticAssets(UPLOAD_DIR, { prefix: '/uploads/' });
+
+  // 图谱百科图片静态服务（通过 /atlas/ 对外访问）
+  app.useStaticAssets(ATLAS_DIR, { prefix: '/atlas/' });
 
   // Swagger documentation
   const config = new DocumentBuilder()

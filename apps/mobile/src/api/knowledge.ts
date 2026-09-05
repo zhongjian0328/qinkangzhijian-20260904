@@ -1,4 +1,5 @@
 import { api } from './client';
+import { AtlasIndex } from '@qinkang/types';
 
 export interface KnowledgeSearchResult {
   id: string;
@@ -34,4 +35,5 @@ export const knowledgeApi = {
       params: { disease },
     }),
   chapter: (id: string) => api.get<ChapterDetail>(`/knowledge/chapter/${id}`),
+  atlas: () => api.get<AtlasIndex>('/knowledge/atlas'),
 };

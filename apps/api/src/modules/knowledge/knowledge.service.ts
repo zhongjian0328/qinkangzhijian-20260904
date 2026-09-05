@@ -45,4 +45,25 @@ export class KnowledgeService {
     }
     return response.json();
   }
+
+  async atlas() {
+    const url = `${this.aiUrl()}/knowledge/atlas`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new BadRequestException(`知识服务返回 ${response.status}: ${await response.text()}`);
+    }
+    const data = await response.json();
+    // 把 AI 返回的图号文件名映射为可对外访问的静态路径 /atlas/xxx.jpg
+    const atlases = (data?.atlases ?? []).map((a: any) => ({
+      ...a,
+      diseases: (a.diseases ?? []).map((d: any) => ({
+        ...d,
+        figures: (d.figures ?? []).map((f: any) => ({
+          text: f.text,
+          image: f.file ? `/atlas/${f.file}` : null,
+        })),
+      })),
+    }));
+    return { atlases, total: data?.total ?? 0 };
+  }
 }

@@ -12,3 +12,7 @@ export * from './learning';
 export * from './certification';
 export * from './notification';
 export * from './common';
+export * from './policy';
+export * from './annotation';
+export * from './collaboration';
+export * from './customer';

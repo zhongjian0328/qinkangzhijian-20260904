@@ -40,6 +40,12 @@ model User {
   bids             Bid[]          @relation("MerchantBids")
   bulkPurchases    BulkPurchase[]
   consultSessions  ConsultSession[]
+  policies          Policy[]
+  policyReads       PolicyRead[]
+  annotations       Annotation[]
+  collaborations    Collaboration[]  @relation("CollabOwner")
+  collabMessages    CollabMessage[]  @relation("CollabMessageUser")
+  customers         Customer[]       @relation("CustomerOwner")
 
   @@map("users")
 }
@@ -432,6 +438,107 @@ model Notification {
   @@map("notifications")
 }
 
+model Policy {
+  id        String         @id @default(uuid())
+  userId    String
+  user      User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  category  PolicyCategory @default(notice)
+  content   String
+  audience  Json           // 定向推送目标角色数组（空数组=全体角色）
+  status    PolicyStatus   @default(published)
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+
+  reads PolicyRead[]
+
+  @@index([status, createdAt])
+  @@map("policies")
+}
+
+model PolicyRead {
+  id       String   @id @default(uuid())
+  policyId String
+  policy   Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  userId   String
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  readAt   DateTime @default(now())
+
+  @@unique([policyId, userId])
+  @@map("policy_reads")
+}
+
+model Annotation {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  imageUrl  String?
+  symptoms  String[]         @default([])
+  labels    String[]         @default([]) // 症状/病变标签
+  disease   String           // 疾病分类
+  note      String?
+  status    AnnotationStatus @default(pending)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@index([userId, status, createdAt])
+  @@map("annotations")
+}
+
+model Collaboration {
+  id          String   @id @default(uuid())
+  ownerId     String
+  owner       User     @relation("CollabOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  topic       String?
+  members     Json     // 成员列表 [{userId, name, role}]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  messages CollabMessage[]
+
+  @@index([ownerId, createdAt])
+  @@map("collaborations")
+}
+
+model CollabMessage {
+  id             String       @id @default(uuid())
+  collaborationId String
+  collaboration  Collaboration @relation(fields: [collaborationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User         @relation("CollabMessageUser", fields: [userId], references: [id], onDelete: Cascade)
+  type           String       @default("text") // text | file
+  content        String
+  fileUrl        String?
+  createdAt      DateTime     @default(now())
+
+  @@index([collaborationId, createdAt])
+  @@map("collab_messages")
+}
+
+model Customer {
+  id             String        @id @default(uuid())
+  ownerId        String
+  owner          User          @relation("CustomerOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  name           String
+  phone          String?
+  farmName       String?
+  species        String?
+  scale          Int?
+  address        String?
+  level          CustomerLevel @default(regular)
+  notes          String?
+  tags           String[]      @default([])
+  nextFollowUpAt DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([ownerId, level, createdAt])
+  @@map("customers")
+}
+
 enum Role {
   admin
   farmer
@@ -589,4 +696,30 @@ enum NotificationType {
   order
   teaching
   system
+}
+
+enum PolicyCategory {
+  prevention_plan
+  immunization
+  medication
+  notice
+  other
+}
+
+enum PolicyStatus {
+  draft
+  published
+  archived
+}
+
+enum AnnotationStatus {
+  pending
+  verified
+  special
+}
+
+enum CustomerLevel {
+  vip
+  regular
+  potential
 }

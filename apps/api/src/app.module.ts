@@ -18,6 +18,10 @@ import { LearningModule } from './modules/learning/learning.module';
 import { CertificationModule } from './modules/certification/certification.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { ConsultModule } from './modules/consult/consult.module';
+import { PolicyModule } from './modules/policy/policy.module';
+import { AnnotationModule } from './modules/annotation/annotation.module';
+import { CollaborationModule } from './modules/collaboration/collaboration.module';
+import { CustomerModule } from './modules/customer/customer.module';
 
 @Module({
   imports: [
@@ -43,6 +47,10 @@ import { ConsultModule } from './modules/consult/consult.module';
     CertificationModule,
     NotificationModule,
     ConsultModule,
+    PolicyModule,
+    AnnotationModule,
+    CollaborationModule,
+    CustomerModule,
   ],
 })
 export class AppModule {}

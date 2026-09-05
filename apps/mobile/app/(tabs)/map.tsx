@@ -51,6 +51,15 @@ export default function MapTab() {
       </View>
       <Text style={styles.sub}>全域疫情热力 · 区域分布 · 监测预警</Text>
 
+      <View style={styles.quickRow}>
+        <TouchableOpacity style={styles.quickBtn} onPress={() => router.push('/epidemic-alert')}>
+          <Text style={styles.quickBtnText}>📢 预警发布</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.quickBtn} onPress={() => router.push('/epidemiology')}>
+          <Text style={styles.quickBtnText}>📋 流调记录</Text>
+        </TouchableOpacity>
+      </View>
+
       {loading ? (
         <ActivityIndicator style={styles.loading} color="#22C55E" />
       ) : !stats ? (
@@ -147,6 +156,9 @@ const styles = StyleSheet.create({
   sub: { fontSize: 13, color: '#666', marginTop: 4, marginBottom: 16 },
   addButton: { paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, backgroundColor: '#22C55E' },
   addButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+  quickRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  quickBtn: { flex: 1, backgroundColor: '#fff', borderRadius: 12, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: '#e0e0e0' },
+  quickBtnText: { fontSize: 14, fontWeight: '600', color: '#111' },
   loading: { marginTop: 20 },
   empty: { color: '#999', textAlign: 'center', marginTop: 30 },
   emptySmall: { color: '#999', fontSize: 13, textAlign: 'center', paddingVertical: 12 },

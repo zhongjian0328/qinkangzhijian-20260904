@@ -47,6 +47,8 @@ model User {
   collabMessages    CollabMessage[]  @relation("CollabMessageUser")
   customers         Customer[]       @relation("CustomerOwner")
   immunizations     Immunization[]
+  epidemicAlerts    EpidemicAlert[]
+  epidemiologies    Epidemiology[]
 
   @@map("users")
 }
@@ -569,6 +571,48 @@ model Customer {
   @@map("customers")
 }
 
+model EpidemicAlert {
+  id        String             @id @default(uuid())
+  userId    String
+  user      User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  disease   String
+  level     EpidemicAlertLevel @default(general)
+  province  String?
+  city      String?
+  district  String?
+  content   String
+  audience  Json               // 定向推送角色数组（空=全体角色）
+  status    EpidemicAlertStatus @default(active)
+  createdAt DateTime           @default(now())
+  updatedAt DateTime           @updatedAt
+
+  @@index([status, createdAt])
+  @@map("epidemic_alerts")
+}
+
+model Epidemiology {
+  id                String             @id @default(uuid())
+  userId            String
+  user              User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title             String
+  disease           String
+  province          String?
+  city              String?
+  district          String?
+  source            String?            // 传染源（引种/人员/车辆/野鸟等）
+  transmissionChain String?            // 传播链描述
+  zones             Json?              // { point, infectedArea, threatenedArea }
+  measures          String[]           @default([]) // 处置措施
+  status            EpidemiologyStatus @default(investigating)
+  conclusion        String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  @@index([userId, status, createdAt])
+  @@map("epidemiologies")
+}
+
 enum Role {
   admin
   farmer
@@ -767,4 +811,21 @@ enum ImmunizationStatus {
   planned
   completed
   overdue
+}
+
+enum EpidemicAlertLevel {
+  general
+  major
+  severe
+}
+
+enum EpidemicAlertStatus {
+  active
+  resolved
+}
+
+enum EpidemiologyStatus {
+  investigating
+  processing
+  completed
 }

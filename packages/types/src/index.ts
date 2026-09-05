@@ -17,3 +17,5 @@ export * from './annotation';
 export * from './collaboration';
 export * from './customer';
 export * from './immunization';
+export * from './epidemic-alert';
+export * from './epidemiology';

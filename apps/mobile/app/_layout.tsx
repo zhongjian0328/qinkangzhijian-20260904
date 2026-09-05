@@ -46,6 +46,8 @@ export default function RootLayout() {
         <Stack.Screen name="logistics/[orderId]" />
         <Stack.Screen name="commissions" />
         <Stack.Screen name="immunization" />
+        <Stack.Screen name="epidemic-alert" />
+        <Stack.Screen name="epidemiology" />
       </Stack>
     </>
   );

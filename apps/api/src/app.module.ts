@@ -23,6 +23,8 @@ import { AnnotationModule } from './modules/annotation/annotation.module';
 import { CollaborationModule } from './modules/collaboration/collaboration.module';
 import { CustomerModule } from './modules/customer/customer.module';
 import { ImmunizationModule } from './modules/immunization/immunization.module';
+import { EpidemicAlertModule } from './modules/epidemic-alert/epidemic-alert.module';
+import { EpidemiologyModule } from './modules/epidemiology/epidemiology.module';
 
 @Module({
   imports: [
@@ -53,6 +55,8 @@ import { ImmunizationModule } from './modules/immunization/immunization.module';
     CollaborationModule,
     CustomerModule,
     ImmunizationModule,
+    EpidemicAlertModule,
+    EpidemiologyModule,
   ],
 })
 export class AppModule {}

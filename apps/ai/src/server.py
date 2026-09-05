@@ -53,6 +53,22 @@ class DiagnosisResult(BaseModel):
     figures: list[dict] = []
 
 
+class PreventionRequest(BaseModel):
+    diagnosis: dict
+    species: str = "chicken"
+    symptoms: list[str] = []
+
+
+class PreventionPlanResult(BaseModel):
+    diagnosis_summary: str
+    emergency_measures: list[str]
+    green_medication: list[str]
+    immunization: list[str]
+    biosafety: list[str]
+    monitoring_plan: list[str]
+    follow_up_notes: str
+
+
 @app.get("/health")
 async def health_check():
     return {
@@ -264,6 +280,73 @@ async def diagnose(request: DiagnosisRequest):
         raise HTTPException(status_code=502, detail=f"AI返回结果解析失败: {e}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"诊断失败: {e}")
+
+
+@app.post("/prevention/generate", response_model=PreventionPlanResult)
+async def generate_prevention(request: PreventionRequest):
+    """根据 AI 诊断结果，结合教材知识生成结构化防控预案。"""
+    diagnosis = request.diagnosis or {}
+    disease = (diagnosis.get("disease") or "").strip()
+    symptoms = request.symptoms or []
+    if not disease and not symptoms:
+        raise HTTPException(status_code=400, detail="缺少诊断信息")
+
+    reference = _build_reference(symptoms or [disease], request.species)
+
+    prompt = f"""你是一位禽病防控专家。请根据以下 AI 诊断结果，结合《禽病防治教材》知识，为养殖户制定一份结构化的防控预案。
+
+禽种: {request.species}
+诊断结果: {json.dumps(diagnosis, ensure_ascii=False)}
+
+【教材参考知识】
+{reference}
+
+请务必遵循教材中的用药禁忌（如有机磷类严禁内服、肾传支禁用磺胺类等）。请按以下 JSON 格式返回，仅返回 JSON，不要其他内容：
+{{
+  "diagnosis_summary": "诊断结论摘要（1-2句话，含主要病变与风险等级）",
+  "emergency_measures": ["紧急处置措施1", "措施2"],
+  "green_medication": ["绿色用药建议1", "建议2"],
+  "immunization": ["免疫建议1", "建议2"],
+  "biosafety": ["生物安全措施1", "措施2"],
+  "monitoring_plan": ["监测计划1", "计划2"],
+  "follow_up_notes": "回访要点（处置后3日/7日分别观察哪些指标）"
+}}"""
+
+    try:
+        async with httpx.AsyncClient(timeout=DOUBAO_TIMEOUT) as client:
+            response = await client.post(
+                DOUBAO_API_URL,
+                headers={
+                    "Authorization": f"Bearer {DOUBAO_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": DOUBAO_MODEL,
+                    "thinking": {"type": "disabled"},
+                    "input": [
+                        {
+                            "role": "user",
+                            "content": [{"type": "input_text", "text": prompt}],
+                        }
+                    ],
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
+
+        text = _extract_text(data)
+        if not text:
+            raise HTTPException(status_code=502, detail="AI服务未返回有效文本")
+
+        result = _parse_json(text)
+        return PreventionPlanResult(**result)
+
+    except httpx.HTTPError as e:
+        raise HTTPException(status_code=502, detail=f"AI服务调用失败[{type(e).__name__}]: {e}")
+    except (json.JSONDecodeError, KeyError, TypeError) as e:
+        raise HTTPException(status_code=502, detail=f"AI返回结果解析失败: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"预案生成失败: {e}")
 
 
 @app.post("/diagnose/upload")

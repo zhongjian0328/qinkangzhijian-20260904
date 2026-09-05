@@ -14,6 +14,7 @@ export class UserService {
         phone: true,
         email: true,
         role: true,
+        subRole: true,
         avatar: true,
         farmId: true,
         createdAt: true,

@@ -40,6 +40,7 @@ export class AuthService {
         phone: user.phone,
         email: user.email ?? undefined,
         role: user.role,
+        subRole: (user.subRole as any) ?? undefined,
         farmId: user.farmId ?? undefined,
         avatar: user.avatar ?? undefined,
         createdAt: user.createdAt.toISOString(),
@@ -64,6 +65,8 @@ export class AuthService {
         username: dto.username,
         phone: dto.phone,
         password: hashedPassword,
+        role: (dto.role ?? 'farmer') as any,
+        subRole: dto.subRole ?? null,
       },
     });
 
@@ -81,6 +84,7 @@ export class AuthService {
         username: user.username,
         phone: user.phone,
         role: user.role,
+        subRole: (user.subRole as any) ?? undefined,
         farmId: user.farmId ?? undefined,
         avatar: user.avatar ?? undefined,
         createdAt: user.createdAt.toISOString(),

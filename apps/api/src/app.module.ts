@@ -7,6 +7,10 @@ import { DiagnosisModule } from './modules/diagnosis/diagnosis.module';
 import { PoultryHouseModule } from './modules/poultry-house/poultry-house.module';
 import { UploadModule } from './modules/upload/upload.module';
 import { KnowledgeModule } from './modules/knowledge/knowledge.module';
+import { ProductionModule } from './modules/production/production.module';
+import { PreventionModule } from './modules/prevention/prevention.module';
+import { EnvironmentModule } from './modules/environment/environment.module';
+import { EpidemicModule } from './modules/epidemic/epidemic.module';
 
 @Module({
   imports: [
@@ -21,6 +25,10 @@ import { KnowledgeModule } from './modules/knowledge/knowledge.module';
     PoultryHouseModule,
     UploadModule,
     KnowledgeModule,
+    ProductionModule,
+    PreventionModule,
+    EnvironmentModule,
+    EpidemicModule,
   ],
 })
 export class AppModule {}

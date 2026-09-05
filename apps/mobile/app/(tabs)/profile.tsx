@@ -1,5 +1,6 @@
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
+import Constants from 'expo-constants';
 import { useAuthStore } from '../../src/store/auth';
 
 const ROLE_LABEL: Record<string, string> = {
@@ -7,7 +8,28 @@ const ROLE_LABEL: Record<string, string> = {
   farmer: '养殖户',
   vet: '兽医',
   technician: '技术员',
+  institution: '机构',
+  student: '学生',
 };
+
+const SUB_ROLE_LABEL: Record<string, string> = {
+  small: '小散户',
+  cooperative: '合作社',
+  enterprise: '养殖企业',
+  cdc: '疫控',
+  research: '科研',
+  service: '服务商',
+  teacher: '教师',
+  learning: '学习',
+  cognitive: '认知实习',
+  internship: '实习',
+};
+
+function roleText(user: { role: string; subRole?: string | null }): string {
+  const main = ROLE_LABEL[user.role] ?? user.role;
+  const sub = user.subRole ? `·${SUB_ROLE_LABEL[user.subRole] ?? user.subRole}` : '';
+  return `${main}${sub}`;
+}
 
 export default function ProfileScreen() {
   const router = useRouter();
@@ -47,7 +69,7 @@ export default function ProfileScreen() {
       <View style={styles.header}>
         <Text style={styles.name}>{user.username}</Text>
         <Text style={styles.desc}>
-          {ROLE_LABEL[user.role] ?? user.role} · {user.phone}
+          {roleText(user)} · {user.phone}
         </Text>
       </View>
 
@@ -62,13 +84,30 @@ export default function ProfileScreen() {
         </View>
         <View style={styles.infoRow}>
           <Text style={styles.infoLabel}>角色</Text>
-          <Text style={styles.infoValue}>{ROLE_LABEL[user.role] ?? user.role}</Text>
+          <Text style={styles.infoValue}>{roleText(user)}</Text>
         </View>
       </View>
+
+      <TouchableOpacity style={styles.entryButton} onPress={() => router.push('/prevention')}>
+        <Text style={styles.entryText}>我的防控预案</Text>
+        <Text style={styles.entryArrow}>›</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.entryButton} onPress={() => router.push('/epidemic')}>
+        <Text style={styles.entryText}>疫情上报</Text>
+        <Text style={styles.entryArrow}>›</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity style={styles.entryButton} onPress={() => router.push('/epidemic/statistics')}>
+        <Text style={styles.entryText}>区域疫情统计</Text>
+        <Text style={styles.entryArrow}>›</Text>
+      </TouchableOpacity>
 
       <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <Text style={styles.logoutText}>退出登录</Text>
       </TouchableOpacity>
+
+      <Text style={styles.version}>禽康智检 v{Constants.expoConfig?.version ?? '2.0.0'}</Text>
     </View>
   );
 }
@@ -96,6 +135,18 @@ const styles = StyleSheet.create({
   },
   infoLabel: { fontSize: 14, color: '#999' },
   infoValue: { fontSize: 14, color: '#111', fontWeight: '500' },
+  entryButton: {
+    marginHorizontal: 20,
+    marginTop: 8,
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  entryText: { fontSize: 15, color: '#111', fontWeight: '600' },
+  entryArrow: { fontSize: 18, color: '#999' },
   logoutButton: {
     marginHorizontal: 20,
     marginTop: 8,
@@ -105,4 +156,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoutText: { fontSize: 16, fontWeight: 'bold', color: '#EF4444' },
+  version: { textAlign: 'center', fontSize: 12, color: '#bbb', marginTop: 24, marginBottom: 12 },
 });

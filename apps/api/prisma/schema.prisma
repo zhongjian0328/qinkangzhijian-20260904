@@ -17,13 +17,18 @@ model User {
   email     String?  @unique
   password  String
   role      Role     @default(farmer)
+  subRole   String?  // small | cooperative | enterprise | cdc | research | service | teacher | learning | cognitive | internship
   avatar    String?
   farmId    String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  diagnoses    Diagnosis[]
-  poultryHouse PoultryHouse[]
+  diagnoses       Diagnosis[]
+  poultryHouse    PoultryHouse[]
+  batches         Batch[]
+  preventionPlans PreventionPlan[]
+  environmentTests EnvironmentTest[]
+  epidemicRecords  EpidemicRecord[]
 
   @@map("users")
 }
@@ -42,6 +47,8 @@ model PoultryHouse {
 
   environmentData EnvironmentData[]
   alerts        Alert[]
+  batches       Batch[]
+  environmentTests EnvironmentTest[]
 
   @@map("poultry_houses")
 }
@@ -61,6 +68,44 @@ model EnvironmentData {
   @@map("environment_data")
 }
 
+model EnvironmentTest {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  houseId   String?
+  house     PoultryHouse? @relation(fields: [houseId], references: [id], onDelete: SetNull)
+  category  EnvironmentCategory // air | water | feed | surface
+  metrics   Json     // 各类型检测指标（键值对，如 { ph: 7.2, bacteria: 500 }）
+  result    EnvironmentResult @default(normal)
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@index([userId, category, createdAt])
+  @@map("environment_tests")
+}
+
+model EpidemicRecord {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  location      String   // 详细地址
+  province      String?
+  city          String?
+  district      String?
+  disease       String   // 疑似疾病
+  affectedCount Int      // 发病数量
+  deathCount    Int      @default(0) // 死亡数量
+  symptoms      String?  // 主要症状
+  level         EpidemicLevel @default(suspected)
+  reportedAt    DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([province, city, district])
+  @@map("epidemic_records")
+}
+
 model Diagnosis {
   id            String        @id @default(uuid())
   userId        String
@@ -73,6 +118,8 @@ model Diagnosis {
   status        DiagnosisStatus @default(pending)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+
+  preventionPlan PreventionPlan?
 
   @@index([userId, createdAt])
   @@map("diagnoses")
@@ -105,11 +152,84 @@ model AIModelVersion {
   @@map("ai_model_versions")
 }
 
+model Batch {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  houseId   String?
+  house     PoultryHouse? @relation(fields: [houseId], references: [id], onDelete: SetNull)
+  batchNo   String
+  breed     String
+  quantity  Int
+  startDate DateTime
+  status    BatchStatus @default(active)
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  dailyRecords DailyRecord[]
+
+  @@index([userId, createdAt])
+  @@map("batches")
+}
+
+model DailyRecord {
+  id          String   @id @default(uuid())
+  batchId     String
+  batch       Batch    @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  recordDate  DateTime
+  deathCount  Int      @default(0)
+  cullCount   Int      @default(0)
+  feedAmount  Float    @default(0)
+  waterAmount Float    @default(0)
+  eggCount    Int      @default(0)
+  temperature Float?
+  humidity    Float?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  @@index([batchId, recordDate])
+  @@map("daily_records")
+}
+
+model PreventionPlan {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  diagnosisId String   @unique
+  diagnosis   Diagnosis @relation(fields: [diagnosisId], references: [id], onDelete: Cascade)
+  content     Json     // 结构化预案（诊断结论/紧急处置/绿色用药/免疫/生物安全/监测/回访要点）
+  status      PreventionStatus @default(active)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  followUps FollowUp[]
+
+  @@index([userId, createdAt])
+  @@map("prevention_plans")
+}
+
+model FollowUp {
+  id          String   @id @default(uuid())
+  planId      String
+  plan        PreventionPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
+  dayOffset   Int      // 3 或 7 日回访
+  status      FollowUpStatus @default(pending)
+  notes       String?
+  completedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  @@index([planId, createdAt])
+  @@map("follow_ups")
+}
+
 enum Role {
   admin
   farmer
   vet
   technician
+  institution
+  student
 }
 
 enum Species {
@@ -133,6 +253,23 @@ enum DiagnosisStatus {
   failed
 }
 
+enum BatchStatus {
+  active
+  completed
+  archived
+}
+
+enum PreventionStatus {
+  active
+  completed
+  archived
+}
+
+enum FollowUpStatus {
+  pending
+  completed
+}
+
 enum AlertType {
   temperature
   humidity
@@ -144,4 +281,23 @@ enum AlertType {
 enum Severity {
   warning
   critical
+}
+
+enum EnvironmentCategory {
+  air
+  water
+  feed
+  surface
+}
+
+enum EnvironmentResult {
+  normal
+  warning
+  abnormal
+}
+
+enum EpidemicLevel {
+  suspected
+  confirmed
+  controlled
 }

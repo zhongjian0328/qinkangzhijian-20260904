@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import * as SecureStore from 'expo-secure-store';
 import { authApi } from '../api/auth';
-import { User } from '@qinkang/types';
+import { User, MainRole, SubRole } from '@qinkang/types';
 import { api } from '../api/client';
 
 interface AuthState {
@@ -11,7 +11,13 @@ interface AuthState {
   isHydrated: boolean;
   hydrate: () => Promise<void>;
   login: (phone: string, password: string) => Promise<void>;
-  register: (username: string, phone: string, password: string) => Promise<void>;
+  register: (
+    username: string,
+    phone: string,
+    password: string,
+    role?: MainRole,
+    subRole?: SubRole | null,
+  ) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -64,10 +70,16 @@ export const useAuthStore = create<AuthState>((set) => ({
     }
   },
 
-  register: async (username: string, phone: string, password: string) => {
+  register: async (
+    username: string,
+    phone: string,
+    password: string,
+    role?: MainRole,
+    subRole?: SubRole | null,
+  ) => {
     set({ isLoading: true });
     try {
-      const res = await authApi.register({ username, phone, password });
+      const res = await authApi.register({ username, phone, password, role, subRole });
       await SecureStore.setItemAsync(TOKEN_KEY, res.token);
       await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, res.refreshToken);
       api.setToken(res.token);

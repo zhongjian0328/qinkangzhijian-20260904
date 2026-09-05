@@ -11,6 +11,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Diagnosis } from '@qinkang/types';
 import { diagnosisApi } from '../../src/api/diagnosis';
+import { preventionApi } from '../../src/api/prevention';
 import { assetUrl } from '../../src/api/client';
 
 const SEVERITY_META: Record<string, { label: string; color: string }> = {
@@ -34,6 +35,7 @@ export default function DiagnosisDetailScreen() {
   const router = useRouter();
   const [diagnosis, setDiagnosis] = useState<Diagnosis | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -73,6 +75,19 @@ export default function DiagnosisDetailScreen() {
 
   const ai = diagnosis?.aiResult;
   const severity = ai?.severity ? SEVERITY_META[ai.severity] : null;
+
+  const generatePlan = async () => {
+    if (!diagnosis) return;
+    setGenerating(true);
+    try {
+      await preventionApi.generate(diagnosis.id);
+      router.push(`/prevention/${diagnosis.id}`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '预案生成失败');
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -170,6 +185,24 @@ export default function DiagnosisDetailScreen() {
                   ))}
                 </View>
               ) : null}
+
+              <TouchableOpacity
+                style={[styles.planButton, generating && styles.planDisabled]}
+                onPress={generatePlan}
+                disabled={generating}
+              >
+                {generating ? (
+                  <ActivityIndicator color="#fff" />
+                ) : (
+                  <Text style={styles.planButtonText}>生成防控预案</Text>
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.planSecondary}
+                onPress={() => router.push(`/prevention/${diagnosis.id}`)}
+              >
+                <Text style={styles.planSecondaryText}>查看防控预案与回访</Text>
+              </TouchableOpacity>
             </View>
           ) : null}
         </>
@@ -228,4 +261,24 @@ const styles = StyleSheet.create({
     borderLeftColor: '#22C55E',
   },
   figureTitle: { fontSize: 13, color: '#166534', fontWeight: '600', marginBottom: 4 },
+  planButton: {
+    marginTop: 20,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: '#22C55E',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
+  },
+  planDisabled: { opacity: 0.7 },
+  planButtonText: { color: '#fff', fontSize: 16, fontWeight: 'bold' },
+  planSecondary: {
+    marginTop: 10,
+    padding: 12,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#22C55E',
+  },
+  planSecondaryText: { color: '#22C55E', fontSize: 14, fontWeight: '600' },
 });

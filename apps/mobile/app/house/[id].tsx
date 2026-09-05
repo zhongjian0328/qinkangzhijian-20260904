@@ -157,6 +157,17 @@ export default function HouseDetailScreen() {
         </Text>
       </View>
 
+      <TouchableOpacity
+        style={styles.envTestEntry}
+        onPress={() => router.push(`/environment/${houseId}`)}
+      >
+        <View style={{ flex: 1 }}>
+          <Text style={styles.envTestTitle}>四类环境检测</Text>
+          <Text style={styles.envTestDesc}>空气 · 水样 · 饲料 · 环境表面 检测录入与超标判定</Text>
+        </View>
+        <Text style={styles.envTestArrow}>›</Text>
+      </TouchableOpacity>
+
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>环境数据</Text>
         <TouchableOpacity
@@ -293,6 +304,19 @@ const styles = StyleSheet.create({
   back: { fontSize: 15, color: '#22C55E', marginBottom: 8 },
   title: { fontSize: 24, fontWeight: 'bold', color: '#111' },
   sub: { fontSize: 14, color: '#666', marginTop: 4 },
+  envTestEntry: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: '#22C55E',
+  },
+  envTestTitle: { fontSize: 15, fontWeight: 'bold', color: '#111' },
+  envTestDesc: { fontSize: 12, color: '#999', marginTop: 4 },
+  envTestArrow: { fontSize: 20, color: '#22C55E', marginLeft: 8 },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

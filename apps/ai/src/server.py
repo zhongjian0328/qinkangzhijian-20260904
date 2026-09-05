@@ -20,7 +20,7 @@ app = FastAPI(title="禽康智检 AI 诊断服务")
 
 # 豆包多模态API配置
 DOUBAO_API_KEY = os.getenv("DOUBAO_API_KEY")
-DOUBAO_MODEL = os.getenv("DOUBAO_MODEL", "doubao-seed-2-1-pro-260628")
+DOUBAO_MODEL = os.getenv("DOUBAO_MODEL", "doubao-seed-2-1-turbo-260628")
 DOUBAO_API_URL = "https://ark.cn-beijing.volces.com/api/v3/responses"
 DOUBAO_TIMEOUT = float(os.getenv("DOUBAO_TIMEOUT", "600"))
 

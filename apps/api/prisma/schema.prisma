@@ -49,6 +49,9 @@ model User {
   immunizations     Immunization[]
   epidemicAlerts    EpidemicAlert[]
   epidemiologies    Epidemiology[]
+  courses           Course[]         @relation("TeacherCourses")
+  courseProgresses  CourseProgress[] @relation("StudentProgress")
+  examPapers        ExamPaper[]      @relation("TeacherPapers")
 
   @@map("users")
 }
@@ -613,6 +616,58 @@ model Epidemiology {
   @@map("epidemiologies")
 }
 
+model Course {
+  id          String       @id @default(uuid())
+  teacherId   String
+  teacher     User         @relation("TeacherCourses", fields: [teacherId], references: [id], onDelete: Cascade)
+  title       String
+  subject     String?
+  description String?
+  chapters    Json         // [{ title, content }]
+  status      CourseStatus @default(published)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  progresses CourseProgress[]
+
+  @@index([teacherId, status, createdAt])
+  @@map("courses")
+}
+
+model CourseProgress {
+  id                String   @id @default(uuid())
+  courseId          String
+  course            Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  userId            String
+  user              User     @relation("StudentProgress", fields: [userId], references: [id], onDelete: Cascade)
+  progress          Int      @default(0) // 0-100
+  completedChapters Int[]    @default([]) // 已完成章节下标
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([courseId, userId])
+  @@map("course_progresses")
+}
+
+model ExamPaper {
+  id            String          @id @default(uuid())
+  teacherId     String
+  teacher       User            @relation("TeacherPapers", fields: [teacherId], references: [id], onDelete: Cascade)
+  title         String
+  chapter       String?         // 章节范围
+  description   String?
+  questionIds   Json            // 题目 id 数组
+  totalScore    Int             @default(100)
+  questionCount Int             @default(0)
+  duration      Int?            // 考试时长（分钟）
+  status        ExamPaperStatus @default(published)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([teacherId, status, createdAt])
+  @@map("exam_papers")
+}
+
 enum Role {
   admin
   farmer
@@ -828,4 +883,15 @@ enum EpidemiologyStatus {
   investigating
   processing
   completed
+}
+
+enum CourseStatus {
+  draft
+  published
+}
+
+enum ExamPaperStatus {
+  draft
+  published
+  archived
 }

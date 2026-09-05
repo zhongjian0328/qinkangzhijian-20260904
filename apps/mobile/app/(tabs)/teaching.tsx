@@ -58,6 +58,15 @@ export default function TeachingTab() {
       <Text style={styles.title}>教学管理</Text>
       <Text style={styles.sub}>实习日志批改 · 题库组卷 · 师生协同</Text>
 
+      <View style={styles.quickRow}>
+        <TouchableOpacity style={styles.quickBtn} onPress={() => router.push('/course')}>
+          <Text style={styles.quickBtnText}>📚 课程管理</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.quickBtn} onPress={() => router.push('/exam-paper')}>
+          <Text style={styles.quickBtnText}>📝 考试组卷</Text>
+        </TouchableOpacity>
+      </View>
+
       <View style={styles.statsRow}>
         <View style={styles.statCard}>
           <Text style={[styles.statNum, { color: '#F59E0B' }]}>{pending.length}</Text>
@@ -146,6 +155,9 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingTop: 60, paddingBottom: 40 },
   title: { fontSize: 24, fontWeight: 'bold', color: '#111' },
   sub: { fontSize: 13, color: '#666', marginTop: 4, marginBottom: 16 },
+  quickRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
+  quickBtn: { flex: 1, backgroundColor: '#fff', borderRadius: 12, paddingVertical: 14, alignItems: 'center', borderWidth: 1, borderColor: '#e0e0e0' },
+  quickBtnText: { fontSize: 14, fontWeight: '600', color: '#111' },
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 16 },
   statCard: { flex: 1, backgroundColor: '#fff', borderRadius: 12, padding: 16, alignItems: 'center' },
   statNum: { fontSize: 26, fontWeight: 'bold', color: '#22C55E' },

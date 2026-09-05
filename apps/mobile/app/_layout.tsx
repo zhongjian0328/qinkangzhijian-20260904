@@ -48,6 +48,8 @@ export default function RootLayout() {
         <Stack.Screen name="immunization" />
         <Stack.Screen name="epidemic-alert" />
         <Stack.Screen name="epidemiology" />
+        <Stack.Screen name="course" />
+        <Stack.Screen name="exam-paper" />
       </Stack>
     </>
   );

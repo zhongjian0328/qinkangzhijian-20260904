@@ -19,3 +19,5 @@ export * from './customer';
 export * from './immunization';
 export * from './epidemic-alert';
 export * from './epidemiology';
+export * from './course';
+export * from './exam-paper';

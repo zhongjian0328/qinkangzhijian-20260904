@@ -25,6 +25,8 @@ import { CustomerModule } from './modules/customer/customer.module';
 import { ImmunizationModule } from './modules/immunization/immunization.module';
 import { EpidemicAlertModule } from './modules/epidemic-alert/epidemic-alert.module';
 import { EpidemiologyModule } from './modules/epidemiology/epidemiology.module';
+import { CourseModule } from './modules/course/course.module';
+import { ExamPaperModule } from './modules/exam-paper/exam-paper.module';
 
 @Module({
   imports: [
@@ -57,6 +59,8 @@ import { EpidemiologyModule } from './modules/epidemiology/epidemiology.module';
     ImmunizationModule,
     EpidemicAlertModule,
     EpidemiologyModule,
+    CourseModule,
+    ExamPaperModule,
   ],
 })
 export class AppModule {}

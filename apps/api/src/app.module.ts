@@ -27,6 +27,7 @@ import { EpidemicAlertModule } from './modules/epidemic-alert/epidemic-alert.mod
 import { EpidemiologyModule } from './modules/epidemiology/epidemiology.module';
 import { CourseModule } from './modules/course/course.module';
 import { ExamPaperModule } from './modules/exam-paper/exam-paper.module';
+import { ExportModule } from './modules/export/export.module';
 
 @Module({
   imports: [
@@ -61,6 +62,7 @@ import { ExamPaperModule } from './modules/exam-paper/exam-paper.module';
     EpidemiologyModule,
     CourseModule,
     ExamPaperModule,
+    ExportModule,
   ],
 })
 export class AppModule {}

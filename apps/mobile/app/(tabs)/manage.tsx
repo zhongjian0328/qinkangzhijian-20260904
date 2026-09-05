@@ -24,6 +24,7 @@ export default function ManageTab() {
   const user = useAuthStore((s) => s.user);
   const isInstitution = user?.role === 'institution';
   const isMerchant = user?.role === 'merchant';
+  const isEnterprise = user?.role === 'farmer' && ['enterprise', 'cooperative'].includes(user?.subRole ?? '');
 
   const [pending, setPending] = useState<PendingCertification[]>([]);
   const [merchantDash, setMerchantDash] = useState<{ productCount: number; orderCount: number; revenue: number; pendingShipCount: number; openBulkCount: number } | null>(null);
@@ -132,6 +133,7 @@ export default function ManageTab() {
         <Entry label="身份认证" desc="实名 / 资质认证" href="/certification" />
         <Entry label="消息通知" desc="预警 · 政策 · 订单消息" href="/notifications" />
         {isMerchant && <Entry label="商家工作台" desc="商品 / 订单 / 询价报价" href="/merchant" />}
+        {(isMerchant || isEnterprise) && <Entry label="客户管理" desc="客户档案 · 分层 · 跟进" href="/customers" />}
         {!isInstitution && <Entry label="个人中心" desc="个人信息 · 数据统计 · 设置" href="/profile" />}
       </View>
     </ScrollView>

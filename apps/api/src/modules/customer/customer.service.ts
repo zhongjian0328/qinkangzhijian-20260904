@@ -11,13 +11,19 @@ const LEVELS = ['vip', 'regular', 'potential'];
 
 type AuthedUser = { id: string; role: string; subRole?: string | null };
 
+function canManageCustomers(user: AuthedUser): boolean {
+  if (VET_ROLES.includes(user.role) || user.role === 'merchant') return true;
+  if (user.role === 'farmer' && ['enterprise', 'cooperative'].includes(user.subRole ?? '')) return true;
+  return false;
+}
+
 @Injectable()
 export class CustomerService {
   constructor(private prisma: PrismaService) {}
 
   private requireVet(user: AuthedUser) {
-    if (!VET_ROLES.includes(user.role)) {
-      throw new ForbiddenException('仅兽医/技术员可管理客户');
+    if (!canManageCustomers(user)) {
+      throw new ForbiddenException('仅兽医/技术员/企业/合作社/商家可管理客户');
     }
   }
 

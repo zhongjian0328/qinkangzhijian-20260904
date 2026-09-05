@@ -1,5 +1,5 @@
 import { api } from './client';
-import { ConsultSession } from '@qinkang/types';
+import { ConsultSession, ConsultReport } from '@qinkang/types';
 
 export interface SendConsultResponse {
   sessionId: string;
@@ -25,4 +25,6 @@ export const consultApi = {
   list: () => api.get<ConsultSession[]>('/consult/sessions'),
   get: (id: string) => api.get<ConsultSession>(`/consult/sessions/${id}`),
   remove: (id: string) => api.delete<{ success: boolean }>(`/consult/sessions/${id}`),
+  generateReport: (id: string) =>
+    api.post<ConsultReport>(`/consult/sessions/${id}/report`),
 };

@@ -19,8 +19,19 @@ export interface ConsultSession {
   userId: string;
   title: string;
   messages: ConsultMessage[];
+  report?: ConsultReport | null;
   createdAt: string;
   updatedAt: string;
+}
+
+/** AI 对话问诊诊断报告（生成后持久化到会话） */
+export interface ConsultReport {
+  title: string;
+  generatedAt: string;
+  diagnosis: ConsultDiagnosis | null;
+  relatedDiseases: string[];
+  conversationSummary: string;
+  disclaimer: string;
 }
 
 /** AI 对话问诊返回（对齐 PRD-v5 对话问诊提示词 2.0.2.1 输出结构） */

@@ -38,6 +38,12 @@ export class ConsultController {
     return this.consultService.getSession(req.user.id, id);
   }
 
+  @Post('sessions/:id/report')
+  @ApiOperation({ summary: '生成问诊诊断报告（基于会话内最新诊断结论）' })
+  generateReport(@Request() req, @Param('id') id: string) {
+    return this.consultService.generateReport(req.user.id, id);
+  }
+
   @Delete('sessions/:id')
   @ApiOperation({ summary: '删除会话' })
   remove(@Request() req, @Param('id') id: string) {

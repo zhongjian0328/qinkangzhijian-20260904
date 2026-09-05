@@ -36,6 +36,7 @@ export default function RootLayout() {
         <Stack.Screen name="service" />
         <Stack.Screen name="consult" />
         <Stack.Screen name="consult/[id]" />
+        <Stack.Screen name="consult-report/[sessionId]" />
         <Stack.Screen name="merchant" />
         <Stack.Screen name="merchant/products" />
         <Stack.Screen name="merchant/orders" />

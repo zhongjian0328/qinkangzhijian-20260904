@@ -387,6 +387,7 @@ model ConsultSession {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   title     String   @default("AI 问诊")
   messages  Json     // 对话历史 chat_history：[{role, content, imageUrls, diagnosis, createdAt}]
+  report    Json?    // 问诊诊断报告（生成后非空）
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

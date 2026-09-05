@@ -23,6 +23,13 @@ import { assetUrl } from '../../src/api/client';
 import { useAuthStore } from '../../src/store/auth';
 
 const QUICK_QUESTIONS = ['鸡拉稀怎么办', '呼吸有啰音', '产蛋下降', '突然死亡', '精神萎靡不吃料'];
+const STUDENT_QUESTIONS = [
+  '如何鉴别新城疫与禽流感',
+  '请引导我分析这个病例',
+  '禽病问诊的基本思路是什么',
+  '剖检时重点观察哪些病变',
+  '常见呼吸道病的鉴别要点',
+];
 
 function getMime(uri: string): string {
   const ext = uri.split('.').pop()?.split('?')[0]?.toLowerCase();
@@ -176,10 +183,32 @@ export default function ConsultScreen() {
     }
   };
 
-  const renderMessage = ({ item }: { item: ConsultMessage }) => {
+  const generateReport = async () => {
+    if (!sessionId) {
+      Alert.alert('提示', '请先完成一轮问诊并得到诊断结论后再生成报告');
+      return;
+    }
+    try {
+      await consultApi.generateReport(sessionId);
+      router.push(`/consult-report/${sessionId}`);
+    } catch (e) {
+      Alert.alert('生成失败', e instanceof Error ? e.message : '请稍后重试');
+    }
+  };
+
+  const goToVet = () => router.push('/service');
+
+  // 最后一条带诊断结论的 AI 消息索引（用于在其下方显示「生成报告/转人工」按钮）
+  const lastDiagIndex = data.reduce(
+    (acc, m, i) => (m.role === 'assistant' && m.diagnosis?.preliminaryDiagnosis ? i : acc),
+    -1,
+  );
+
+  const renderMessage = ({ item, index }: { item: ConsultMessage; index: number }) => {
     const isUser = item.role === 'user';
     const diag = item.diagnosis;
     const related = item.relatedDiseases;
+    const showActions = !isUser && index === lastDiagIndex;
     return (
       <View style={[styles.msgRow, isUser ? styles.msgRowUser : styles.msgRowAi]}>
         {!isUser && <Text style={styles.aiAvatar}>🐔</Text>}
@@ -225,6 +254,17 @@ export default function ConsultScreen() {
               ) : null}
             </View>
           ) : null}
+
+          {showActions ? (
+            <View style={styles.actionRow}>
+              <TouchableOpacity style={styles.actionPrimary} onPress={generateReport}>
+                <Text style={styles.actionPrimaryText}>📄 生成诊断报告</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.actionGhost} onPress={goToVet}>
+                <Text style={styles.actionGhostText}>👨‍⚕️ 转人工兽医</Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
         </View>
       </View>
     );
@@ -234,28 +274,39 @@ export default function ConsultScreen() {
     const last = item.messages?.[item.messages.length - 1];
     const preview = last?.content ?? '';
     const diag = (item.messages ?? []).find((m) => m.diagnosis?.preliminaryDiagnosis)?.diagnosis;
+    const hasReport = !!item.report;
     return (
-      <TouchableOpacity style={styles.sessionItem} onPress={() => loadSession(item)}>
-        <View style={styles.sessionMain}>
-          <Text style={styles.sessionTitle} numberOfLines={1}>
-            {item.title || 'AI 问诊'}
-          </Text>
-          <Text style={styles.sessionPreview} numberOfLines={1}>
-            {preview}
-          </Text>
-          {diag?.preliminaryDiagnosis ? (
-            <Text style={styles.sessionDiag} numberOfLines={1}>
-              初步诊断：{diag.preliminaryDiagnosis}
+      <View style={styles.sessionItem}>
+        <TouchableOpacity style={styles.sessionTouch} onPress={() => loadSession(item)}>
+          <View style={styles.sessionMain}>
+            <Text style={styles.sessionTitle} numberOfLines={1}>
+              {item.title || 'AI 问诊'}
             </Text>
-          ) : null}
-        </View>
-        <View style={styles.sessionSide}>
-          <Text style={styles.sessionTime}>
-            {new Date(item.updatedAt).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })}
-          </Text>
-          <Text style={styles.sessionCount}>{item.messages?.length ?? 0} 条</Text>
-        </View>
-      </TouchableOpacity>
+            <Text style={styles.sessionPreview} numberOfLines={1}>
+              {preview}
+            </Text>
+            {diag?.preliminaryDiagnosis ? (
+              <Text style={styles.sessionDiag} numberOfLines={1}>
+                初步诊断：{diag.preliminaryDiagnosis}
+              </Text>
+            ) : null}
+          </View>
+          <View style={styles.sessionSide}>
+            <Text style={styles.sessionTime}>
+              {new Date(item.updatedAt).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })}
+            </Text>
+            <Text style={styles.sessionCount}>{item.messages?.length ?? 0} 条</Text>
+          </View>
+        </TouchableOpacity>
+        {hasReport ? (
+          <TouchableOpacity
+            style={styles.viewReportBtn}
+            onPress={() => router.push(`/consult-report/${item.id}`)}
+          >
+            <Text style={styles.viewReportText}>📄 查看报告</Text>
+          </TouchableOpacity>
+        ) : null}
+      </View>
     );
   };
 
@@ -266,7 +317,7 @@ export default function ConsultScreen() {
       keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
     >
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>AI问诊</Text>
+        <Text style={styles.headerTitle}>AI对话问诊</Text>
         <View style={styles.headerBtns}>
           <TouchableOpacity style={styles.newBtn} onPress={showHistory ? () => setShowHistory(false) : loadHistory}>
             <Text style={styles.newBtnText}>{showHistory ? '对话' : '历史'}</Text>
@@ -311,7 +362,7 @@ export default function ConsultScreen() {
                   contentContainerStyle={styles.quickContent}
                 >
                   <Text style={styles.quickLabel}>💡 快速提问：</Text>
-                  {QUICK_QUESTIONS.map((q) => (
+                  {(user?.role === 'student' ? STUDENT_QUESTIONS : QUICK_QUESTIONS).map((q) => (
                     <TouchableOpacity key={q} style={styles.quickChip} onPress={() => send(q)}>
                       <Text style={styles.quickChipText}>{q}</Text>
                     </TouchableOpacity>
@@ -384,8 +435,6 @@ const styles = StyleSheet.create({
   historyHint: { padding: 12, paddingBottom: 4, fontSize: 13, color: '#6b7280' },
   emptyText: { textAlign: 'center', marginTop: 40, color: '#9ca3af', fontSize: 14 },
   sessionItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
     padding: 14,
     marginHorizontal: 16,
     marginTop: 10,
@@ -394,6 +443,18 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: '#e5e7eb',
   },
+  sessionTouch: { flexDirection: 'row', alignItems: 'center' },
+  viewReportBtn: {
+    marginTop: 10,
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 14,
+    backgroundColor: '#ecfdf5',
+    borderWidth: 1,
+    borderColor: '#a7f3d0',
+  },
+  viewReportText: { fontSize: 12, color: '#16a34a', fontWeight: 'bold' },
   sessionMain: { flex: 1, marginRight: 10 },
   sessionTitle: { fontSize: 15, fontWeight: 'bold', color: '#1f2937' },
   sessionPreview: { fontSize: 13, color: '#6b7280', marginTop: 3 },
@@ -451,6 +512,31 @@ const styles = StyleSheet.create({
   diagSection: { marginTop: 6 },
   diagBody: { fontSize: 13, color: '#374151', lineHeight: 20 },
   diagNext: { fontSize: 13, color: '#6b7280', marginTop: 6 },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+    alignSelf: 'stretch',
+  },
+  actionPrimary: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: '#22C55E',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionPrimaryText: { color: '#fff', fontSize: 13, fontWeight: 'bold' },
+  actionGhost: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#22C55E',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionGhostText: { color: '#22C55E', fontSize: 13, fontWeight: '600' },
   inputBar: {
     flexDirection: 'row',
     alignItems: 'flex-end',

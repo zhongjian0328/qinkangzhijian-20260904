@@ -136,6 +136,43 @@ export class ConsultService {
     });
   }
 
+  async generateReport(userId: string, id: string) {
+    const session = await this.prisma.consultSession.findUnique({ where: { id } });
+    if (!session) throw new BadRequestException('会话不存在');
+    if (session.userId !== userId) throw new BadRequestException('无权访问该会话');
+
+    const messages = (session.messages as any[]) ?? [];
+    const diagMsg = [...messages]
+      .reverse()
+      .find((m) => m.role === 'assistant' && m.diagnosis?.preliminaryDiagnosis);
+    if (!diagMsg) {
+      throw new BadRequestException('当前会话暂无诊断结论，无法生成报告');
+    }
+
+    const userContents = messages
+      .filter((m) => m.role === 'user' && m.content)
+      .map((m) => m.content.trim())
+      .filter(Boolean);
+
+    const report = {
+      title: session.title,
+      generatedAt: new Date().toISOString(),
+      diagnosis: diagMsg.diagnosis ?? null,
+      relatedDiseases: diagMsg.relatedDiseases ?? [],
+      conversationSummary: userContents.length
+        ? userContents.slice(-5).join('；')
+        : session.title,
+      disclaimer: '本报告由AI生成，仅供参考，不能替代执业兽医诊断。',
+    };
+
+    await this.prisma.consultSession.update({
+      where: { id },
+      data: { report, updatedAt: new Date() },
+    });
+
+    return report;
+  }
+
   async getSession(userId: string, id: string) {
     const session = await this.prisma.consultSession.findUnique({ where: { id } });
     if (!session) throw new BadRequestException('会话不存在');

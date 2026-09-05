@@ -144,14 +144,14 @@ export default function ProfileScreen() {
         <Text style={styles.logoutText}>退出登录</Text>
       </TouchableOpacity>
 
-      <Text style={styles.version}>禽康智检 v{Constants.expoConfig?.version ?? '4.0.0'}</Text>
+      <Text style={styles.version}>禽康智检 v{Constants.expoConfig?.version ?? '4.1.0'}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: { padding: 30, alignItems: 'center', backgroundColor: '#22C55E' },
+  header: { paddingHorizontal: 30, paddingTop: 64, paddingBottom: 24, alignItems: 'center', backgroundColor: '#22C55E' },
   name: { fontSize: 20, fontWeight: 'bold', color: '#fff' },
   desc: { fontSize: 12, color: '#e0ffe0', marginTop: 4 },
   loginButton: {

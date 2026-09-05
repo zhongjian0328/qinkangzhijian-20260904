@@ -92,7 +92,7 @@ export default function LoginScreen() {
       {/* 体验模式入口（右上角） */}
       <View style={styles.topBar}>
         <TouchableOpacity style={styles.experienceTopBtn} onPress={goExperience}>
-          <Ionicons name="flash-outline" size={13} color={COLORS.primary} />
+          <Ionicons name="flash-outline" size={16} color={COLORS.primary} />
           <Text style={styles.experienceTopText}>体验模式</Text>
         </TouchableOpacity>
       </View>
@@ -100,7 +100,7 @@ export default function LoginScreen() {
       {/* Logo 区（紧凑） */}
       <View style={styles.logoSection}>
         <View style={styles.logoIcon}>
-          <Ionicons name="shield-checkmark" size={28} color="#fff" />
+          <Ionicons name="shield-checkmark" size={38} color="#fff" />
         </View>
         <Text style={styles.appName}>禽康智检</Text>
         <Text style={styles.appSlogan}>AI 赋能 · 精准诊断 · 绿色防控</Text>
@@ -227,7 +227,7 @@ export default function LoginScreen() {
           <Text style={styles.bottomTextLink}>《隐私政策》</Text>
         </Text>
         <Text style={styles.bottomTextSub}>
-          禽康智检 · 禽类养殖智能诊疗平台 v{Constants.expoConfig?.version ?? '4.0.0'}
+          禽康智检 · 禽类养殖智能诊疗平台 v{Constants.expoConfig?.version ?? '4.1.0'}
         </Text>
       </View>
     </ScrollView>
@@ -250,28 +250,28 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     paddingHorizontal: 20,
-    paddingTop: 50,
+    paddingTop: 46,
     paddingBottom: 0,
   },
   experienceTopBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
+    gap: 5,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
     backgroundColor: COLORS.primaryBg,
     borderWidth: 1,
     borderColor: 'rgba(34,197,94,0.35)',
     borderRadius: 999,
   },
-  experienceTopText: { fontSize: 12, fontWeight: '600', color: COLORS.primary },
-  logoSection: { paddingTop: 8, paddingHorizontal: 24, paddingBottom: 20, alignItems: 'center' },
+  experienceTopText: { fontSize: 14, fontWeight: '600', color: COLORS.primary },
+  logoSection: { paddingTop: 6, paddingHorizontal: 24, paddingBottom: 14, alignItems: 'center' },
   logoIcon: {
-    width: 56,
-    height: 56,
-    marginBottom: 12,
+    width: 76,
+    height: 76,
+    marginBottom: 10,
     backgroundColor: COLORS.primary,
-    borderRadius: 18,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: COLORS.primary,
@@ -281,20 +281,20 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   appName: {
-    fontSize: 24,
+    fontSize: 30,
     fontWeight: '800',
     letterSpacing: 2,
     color: COLORS.textPrimary,
     marginBottom: 4,
   },
-  appSlogan: { fontSize: 12, color: COLORS.textSecondary, letterSpacing: 1 },
+  appSlogan: { fontSize: 13, color: COLORS.textSecondary, letterSpacing: 1 },
   formSection: { paddingHorizontal: 24 },
   tabGroup: {
     flexDirection: 'row',
     backgroundColor: COLORS.borderLight,
     borderRadius: 12,
     padding: 4,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   tabItem: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 8 },
   tabItemActive: { backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
@@ -345,7 +345,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   footerLink: { fontSize: 13, color: COLORS.primary },
-  divider: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 18, marginBottom: 14 },
+  divider: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14, marginBottom: 10 },
   dividerLine: { flex: 1, height: 1, backgroundColor: COLORS.border },
   dividerText: { fontSize: 12, color: COLORS.textMuted },
   socialRow: { flexDirection: 'row', justifyContent: 'center', gap: 16, marginBottom: 4 },

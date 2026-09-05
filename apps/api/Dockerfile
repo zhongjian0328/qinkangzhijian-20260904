@@ -11,6 +11,9 @@ WORKDIR /app
 # 先拷贝整个仓库（.dockerignore 已排除 node_modules/venv/上传图/密钥等）
 COPY . .
 
+# Prisma 引擎二进制走国内镜像（binaries.prisma.sh 被墙会导致 postinstall 卡死）
+ENV PRISMA_ENGINES_MIRROR=https://registry.npmmirror.com/-/binary/prisma
+
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @qinkang/types build
 RUN pnpm --filter api build

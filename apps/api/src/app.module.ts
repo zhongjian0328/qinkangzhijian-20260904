@@ -6,6 +6,7 @@ import { UserModule } from './modules/user/user.module';
 import { DiagnosisModule } from './modules/diagnosis/diagnosis.module';
 import { PoultryHouseModule } from './modules/poultry-house/poultry-house.module';
 import { UploadModule } from './modules/upload/upload.module';
+import { KnowledgeModule } from './modules/knowledge/knowledge.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { UploadModule } from './modules/upload/upload.module';
     DiagnosisModule,
     PoultryHouseModule,
     UploadModule,
+    KnowledgeModule,
   ],
 })
 export class AppModule {}

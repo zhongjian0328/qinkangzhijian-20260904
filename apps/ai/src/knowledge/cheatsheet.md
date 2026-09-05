@@ -1,6 +1,8 @@
-# 禽病防治教材 · 速查表
+# 禽病防治 · 速查表
 
 决策规则、阈值、鉴别要点、禁忌。数字均来自章节原文。
+
+> 更全的分组鉴别诊断见 [appendix/jianbie-zhenduan.md](appendix/jianbie-zhenduan.md)；药物用法用量与停药期完整表见 [appendix/zhiliao-yao.md](appendix/zhiliao-yao.md)；消毒药表见 [appendix/xiaodu-yao.md](appendix/xiaodu-yao.md)；剖检病变图注见 [atlas/](atlas/chuanranbing-tupu.md)。
 
 ## 免疫程序速查
 

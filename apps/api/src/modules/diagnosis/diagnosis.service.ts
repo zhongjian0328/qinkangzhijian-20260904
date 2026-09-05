@@ -13,6 +13,7 @@ interface RawAIResult {
   recommendations: string[];
   severity: string;
   differential_diagnoses?: { disease: string; probability: number }[];
+  figures?: { title: string; text: string }[];
 }
 
 const EXT_MIME: Record<string, string> = {
@@ -53,6 +54,7 @@ export class DiagnosisService {
           recommendations: [],
           severity: 'low',
           differentialDiagnoses: [],
+          figures: [],
         },
         status: 'pending',
       },
@@ -108,6 +110,7 @@ export class DiagnosisService {
         disease: d.disease,
         probability: d.probability,
       })),
+      figures: raw.figures ?? [],
     };
 
     await this.updateAIResult(diagnosisId, result);

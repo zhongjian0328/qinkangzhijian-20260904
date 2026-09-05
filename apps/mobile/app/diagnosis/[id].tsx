@@ -158,6 +158,18 @@ export default function DiagnosisDetailScreen() {
                   ))}
                 </View>
               ) : null}
+
+              {ai.figures?.length ? (
+                <View style={styles.section}>
+                  <Text style={styles.label}>图谱诊断要点</Text>
+                  {ai.figures.map((f, i) => (
+                    <View key={i} style={styles.figureBox}>
+                      <Text style={styles.figureTitle}>{f.title}</Text>
+                      <Text style={styles.body}>{f.text}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
             </View>
           ) : null}
         </>
@@ -207,4 +219,13 @@ const styles = StyleSheet.create({
   },
   diffName: { fontSize: 14, color: '#4b5563' },
   diffProb: { fontSize: 14, color: '#6b7280' },
+  figureBox: {
+    backgroundColor: '#ECFDF5',
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 6,
+    borderLeftWidth: 3,
+    borderLeftColor: '#22C55E',
+  },
+  figureTitle: { fontSize: 13, color: '#166534', fontWeight: '600', marginBottom: 4 },
 });

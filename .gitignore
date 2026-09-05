@@ -43,6 +43,8 @@ prisma/migrations/
 
 # Mobile
 *.jks
+*.keystore
+credentials.json
 *.p8
 *.p12
 *.key
@@ -75,5 +77,13 @@ docs/generated/
 .claude/worktrees/
 .claude/MEMORY.md
 
-# Raw knowledge source (already integrated into apps/ai/src/knowledge/)
+# Raw source materials (reference docs/prototypes, not part of the build)
 /鸡的疾病知识/
+/养鸡疑难处置/
+/prd-v5.md
+/qinkang-zhijian-v3/
+/UI_PRO_V2/
+
+# Temp files / screenshots
+_tmp_docx.txt
+ScreenShot_*.png

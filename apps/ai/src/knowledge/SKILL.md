@@ -1,19 +1,21 @@
 ---
 name: qinbing-fangzhi
-description: "Knowledge base from 《禽病防治教材》(a Chinese veterinary textbook on poultry disease prevention and control). Use when identifying, differentiating, preventing, or treating poultry diseases (病毒病/细菌病/寄生虫病/普通病), or when applying prevention-immunization-diagnosis-treatment workflows for poultry."
+description: "Knowledge base from 《禽病防治教材》 textbook + 《典型鸡病诊断防治彩色图谱》 diagnostic atlas + 《养鸡疑难300问》 Q&A (Chinese veterinary poultry disease). Use when identifying, differentiating, preventing, or treating poultry diseases (病毒病/细菌病/寄生虫病/普通病), looking up lesion/figure diagnostic points (图谱图注), drug dosages & withdrawal periods, disinfectants, immunization programs, or prevention-immunization-diagnosis-treatment workflows."
 ---
 
 <!-- argument-hint: [病名、症状、鉴别诊断、免疫程序、用药、消毒、章节号] -->
 
-# 禽病防治教材
+# 禽病防治教材 + 典型鸡病诊断防治彩色图谱 + 养鸡疑难300问
 
-**来源**: 禽病防治教材（兽医教学教材） | **章节**: 42 | **生成**: 2026-09-04
+**来源**: 禽病防治教材（兽医教学教材）+ 典型鸡病诊断防治彩色图谱（诊断图谱，经 OCR 提取）+ 养鸡疑难300问（席克奇编著，第12章鸡常见病及防治问答） | **章节**: 62 | **生成**: 2026-09-04 · **更新**: 2026-09-05
 
 ## How to Use This Skill
 
 - **不带参数** — 加载下方核心框架，了解禽病防治的总思路
 - **带病名** — 问「禽流感」「球虫」「新城疫」等，我会读取对应章节作答
 - **带症状** — 描述症状（如「血便」「花斑肾」「腺胃乳头出血」），我用 cheatsheet 的鉴别诊断速查定位疑似病
+- **带剖检所见/病变图注** — 问「腺胃乳头出血」「枣核状溃疡」等病变，或要「图谱」，我读 `atlas/` 图谱诊断要点，给出图号与页码；要「看图」时按图号从 `images/` 调出对应原图
+- **查药/停药期/消毒** — 问某药用法用量停药期、消毒药，我读 `appendix/` 的用药与消毒表
 - **带章节号** — 问 `ch05`、`ch04`，直接读取该章
 - **浏览** — 问「有哪些章节？」查看完整索引
 
@@ -83,31 +85,64 @@ description: "Knowledge base from 《禽病防治教材》(a Chinese veterinary 
 | [ch40](chapters/ch40-yingyang-daixie.md) | 营养代谢病 | 痛风、维生素缺乏、钙磷缺乏 |
 | [ch41](chapters/ch41-zhongdu.md) | 常见中毒病 | 霉菌毒素、食盐、农药 |
 | [ch42](chapters/ch42-qita-changjian.md) | 家禽常见其他病 | 啄癖、肉鸡猝死综合征 |
+| [ch43](chapters/ch43-jiehe.md) | 鸡结核病 | 肝脾结核结节、人畜共患 |
+| [ch44](chapters/ch44-bi-qiguanyan-niaganjun.md) | 鸡鼻气管炎鸟杆菌病 | 6周龄肉鸡、纤维素性气囊炎心包炎 |
+| [ch45](chapters/ch45-funan-zhongdu.md) | 呋喃类药物中毒 | 痢特灵、神经兴奋、3h内死亡 |
+| [ch46](chapters/ch46-huangan-zhongdu.md) | 磺胺类药物中毒 | 肾肿尿酸盐、产蛋下降 |
+| [ch47](chapters/ch47-kuiyichun-zhongdu.md) | 喹乙醇中毒 | 肾上腺、出血 |
+| [ch48](chapters/ch48-vb3-quefa.md) | 维生素B3（泛酸）缺乏症 | 皮炎、羽毛、神经症状 |
+| [ch49](chapters/ch49-yuanhuan-bingdu.md) | 鸡圆环病毒病 | 水样腹泻、脱水、盲肠膨大 |
+| [ch50](chapters/ch50-chuji-tuoshui.md) | 雏鸡脱水 | 出壳后缺水、控湿度 |
+| [ch51](chapters/ch51-chushengchu-qiyan.md) | 初生雏脐炎 | 脐孔感染、孵化室消毒 |
+| [ch52](chapters/ch52-chandan-pilao.md) | 笼养鸡产蛋疲劳症 | 钙磷不足、腿软软壳蛋 |
+| [ch53](chapters/ch53-yingji-zonghezheng.md) | 鸡应激综合征 | 惊恐症、氯丙嗪 |
+| [ch54](chapters/ch54-sunang-yan.md) | 鸡嗉囊炎 | 软嗉症、嗉囊水胀 |
+| [ch55](chapters/ch55-ganmao.md) | 鸡感冒 | 寒冷刺激、呼吸道症状 |
+| [ch56](chapters/ch56-fushui-zonghezheng.md) | 肉鸡腹水综合征 | 腹水、右心衰竭 |
+| [ch57](chapters/ch57-xiongbu-nangzhong.md) | 肉用仔鸡胸部囊肿 | 胸骨滑液囊炎 |
+| [ch58](chapters/ch58-tuibing.md) | 肉用仔鸡腿病 | 腿软、腿骨变形 |
+| [ch59](chapters/ch59-caizibing-zhongdu.md) | 鸡菜子饼中毒 | 硫氰酸酯毒素、褐壳蛋鱼腥味 |
+| [ch60](chapters/ch60-mianzibing-zhongdu.md) | 鸡棉子饼中毒 | 游离棉酚、硫酸亚铁去毒 |
+| [ch61](chapters/ch61-linhuaxin-zhongdu.md) | 鸡磷化锌中毒 | 灭鼠药、磷臭味 |
+| [ch62](chapters/ch62-anqi-zhongdu.md) | 鸡氨气中毒 | 通风不良、氨气蓄积 |
 
 ## Topic Index
 
 **总论**：禽病预防 → ch01 · 传染病三环节 → ch01 · 免疫方法 → ch01, ch03 · 消毒 → ch01 · 诊断 → ch02 · 用药 → ch03
 
-**病毒病**：禽流感 → ch04 · 新城疫 → ch05 · 传支 → ch06 · 喉气管炎 → ch07 · 马立克氏病 → ch08 · 禽白血病 → ch09 · 法氏囊病 → ch10 · 传染性贫血 → ch11 · 网状内皮增殖病 → ch12 · 腺病毒病 → ch13 · 禽痘 → ch14 · 病毒性关节炎 → ch15 · 脑脊髓炎 → ch16 · 鸭瘟 → ch17 · 鸭病毒性肝炎 → ch18 · 鸭坦布苏病 → ch19 · 雏番鸭细小病毒病 → ch20 · 小鹅瘟 → ch21
+**病毒病**：禽流感 → ch04 · 新城疫 → ch05 · 传支 → ch06 · 喉气管炎 → ch07 · 马立克氏病 → ch08 · 禽白血病 → ch09 · 法氏囊病 → ch10 · 传染性贫血 → ch11 · 网状内皮增殖病 → ch12 · 腺病毒病 → ch13 · 禽痘 → ch14 · 病毒性关节炎 → ch15 · 脑脊髓炎 → ch16 · 鸭瘟 → ch17 · 鸭病毒性肝炎 → ch18 · 鸭坦布苏病 → ch19 · 雏番鸭细小病毒病 → ch20 · 小鹅瘟 → ch21 · 圆环病毒病 → ch49
 
-**细菌病**：大肠杆菌病 → ch22 · 沙门氏菌病 → ch23 · 巴氏杆菌病 → ch24 · 传染性鼻炎 → ch25 · 坏死性肠炎 → ch26 · 葡萄球菌病 → ch27 · 弯曲杆菌性肝炎 → ch28 · 绿脓杆菌病 → ch29 · 鸭传染性浆膜炎 → ch30
+**细菌病**：大肠杆菌病 → ch22 · 沙门氏菌病 → ch23 · 巴氏杆菌病 → ch24 · 传染性鼻炎 → ch25 · 坏死性肠炎 → ch26 · 葡萄球菌病 → ch27 · 弯曲杆菌性肝炎 → ch28 · 绿脓杆菌病 → ch29 · 鸭传染性浆膜炎 → ch30 · 鸡结核病 → ch43 · 鼻气管炎鸟杆菌病 → ch44
 
 **其他微生物病**：支原体病 → ch31 · 曲霉菌病 → ch32 · 念珠菌病 → ch33 · 衣原体病 → ch34
 
 **寄生虫病**：球虫病 → ch35 · 组织滴虫病 → ch36 · 住白细胞虫病 → ch37 · 肠内寄生虫 → ch38 · 体外寄生虫 → ch39
 
-**普通病**：营养代谢病/痛风 → ch40 · 中毒病 → ch41 · 啄癖/猝死综合征 → ch42
+**普通病**：营养代谢病/痛风 → ch40 · 中毒病 → ch41 · 啄癖/猝死综合征 → ch42 · 呋喃类药物中毒 → ch45 · 磺胺类药物中毒 → ch46 · 喹乙醇中毒 → ch47 · 维生素B3缺乏 → ch48 · 雏鸡脱水 → ch50 · 初生雏脐炎 → ch51 · 产蛋疲劳症 → ch52 · 应激综合征 → ch53 · 嗉囊炎 → ch54 · 感冒 → ch55 · 腹水综合征 → ch56 · 胸部囊肿 → ch57 · 腿病 → ch58 · 菜子饼中毒 → ch59 · 棉子饼中毒 → ch60 · 磷化锌中毒 → ch61 · 氨气中毒 → ch62
 
-**鉴别诊断**：腺胃乳头出血 → ch05 · 花斑肾 → ch06 · 血便 → ch35, ch36 · 法氏囊萎缩/肿大 → ch08, ch09 · 角弓反张 → ch18 · 观星状 → ch16, ch40
+**图谱诊断要点**（病变图注 → 图号/页码）：传染病 → atlas/chuanranbing-tupu.md · 寄生虫病 → atlas/jishengchong-tupu.md · 普通病/中毒/营养缺乏 → atlas/putongbing-tupu.md
+
+**图谱原图**（图号 → 文件）：images/ 已嵌入 490 张诊断图，图号→文件→页码→病种索引见 images/manifest.md
+
+**鉴别诊断**：腺胃乳头出血 → ch05 · 花斑肾 → ch06 · 血便 → ch35, ch36 · 法氏囊萎缩/肿大 → ch08, ch09 · 角弓反张 → ch18 · 观星状 → ch16, ch40 · 症状分组鉴别（腹泻/呼吸道/神经/啄癖/腹水/拐子鸡）→ appendix/jianbie-zhenduan.md
 
 ## Supporting Files
 
 - [glossary.md](glossary.md) — 关键术语定义（病名、诊断/免疫/解剖生理术语）
 - [patterns.md](patterns.md) — 免疫、诊断、消毒、用药方法与程序
 - [cheatsheet.md](cheatsheet.md) — 免疫程序、诊断阈值、鉴别诊断、用药禁忌速查表
+- [atlas/chuanranbing-tupu.md](atlas/chuanranbing-tupu.md) — 图谱诊断要点·传染病（病变图注→图号/页码）
+- [atlas/jishengchong-tupu.md](atlas/jishengchong-tupu.md) — 图谱诊断要点·寄生虫病
+- [atlas/putongbing-tupu.md](atlas/putongbing-tupu.md) — 图谱诊断要点·普通病/中毒/营养缺乏
+- [appendix/jianbie-zhenduan.md](appendix/jianbie-zhenduan.md) — 症状分组鉴别诊断（腹泻/呼吸道/神经/啄癖/腹水/拐子鸡）
+- [appendix/zhiliao-yao.md](appendix/zhiliao-yao.md) — 常用治疗性药物用法用量与停药期表
+- [appendix/xiaodu-yao.md](appendix/xiaodu-yao.md) — 常用消毒药作用用法注意事项表
+- [appendix/kuaisu-zhenduan.md](appendix/kuaisu-zhenduan.md) — 鸡病快速诊断指南
+- [appendix/](appendix/) — 另含：综合防控、诊断技术总结、疫苗接种方法、中药、眼部症状比较
+- [images/manifest.md](images/manifest.md) — 490 张图谱原图索引（图号→文件→页码→病种），图片为 images/fig{章}-{图号}.jpg
 
 ---
 
 ## Scope & Limits
 
-本 skill 仅覆盖《禽病防治教材》内容，为教学参考与诊疗思路梳理，不构成诊疗处方；实际用药须遵循当地兽药法规、停药期与执业兽医指导。源文件为 Word 文档（内含 0 张图片），故无解剖图/病理图。如需超出本书的疾病或最新防控方案，请结合现行标准与相关技能另行查证。
+本 skill 覆盖《禽病防治教材》《典型鸡病诊断防治彩色图谱》《养鸡疑难300问》三部书，为教学参考与诊疗思路梳理，不构成诊疗处方；实际用药须遵循当地兽药法规、停药期与执业兽医指导。《禽病防治教材》源文件为 Word 文档（0 张内嵌图）；《典型鸡病诊断防治彩色图谱》为 220 页彩色图谱，正文文字层经 OCR 提取（图注、页码、附录表格），图谱的病变图注见 `atlas/`（以图号+原书页码定位），图谱原图已抽出 **490 张**并嵌入 `images/`（JPEG q90、300 DPI 渲染裁剪；源图为 PDF 内嵌位图约 100 DPI，300 DPI 为放大渲染，细节上限为源图分辨率），图号→文件索引见 `images/manifest.md`。《养鸡疑难300问》（席克奇编著，中国农业出版社 2020 第四版）取第 12 章「鸡常见病及防治」66 问（问 234–299）并入：其中 14 个新病种建为 ch49–ch62，其余问答按病种以「《养鸡疑难300问》防治问答补充」小节并入现有章节，总论问答（传染病/诊断/剖检/投药/免疫/消毒）并入 ch01–ch03 并附免疫程序表。如需超出本书的疾病或最新防控方案，请结合现行标准与相关技能另行查证。

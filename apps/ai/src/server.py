@@ -12,7 +12,7 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, UploadFile, File
 from pydantic import BaseModel
 
-from knowledge import DiseaseKnowledge
+from knowledge import DiseaseKnowledge, FarmingKnowledge, knowledge, farming_knowledge
 
 load_dotenv()
 
@@ -23,9 +23,6 @@ DOUBAO_API_KEY = os.getenv("DOUBAO_API_KEY")
 DOUBAO_MODEL = os.getenv("DOUBAO_MODEL", "doubao-seed-2-1-turbo-260628")
 DOUBAO_API_URL = "https://ark.cn-beijing.volces.com/api/v3/responses"
 DOUBAO_TIMEOUT = float(os.getenv("DOUBAO_TIMEOUT", "600"))
-
-# 禽病知识库（《禽病防治教材》42章）
-knowledge = DiseaseKnowledge()
 
 
 class DiagnosisRequest(BaseModel):
@@ -41,6 +38,11 @@ class KnowledgeSearchRequest(BaseModel):
     top_k: int = 5
 
 
+class FarmingSearchRequest(BaseModel):
+    query: str
+    top_k: int = 5
+
+
 class DiagnosisResult(BaseModel):
     disease: str
     probability: float
@@ -48,6 +50,7 @@ class DiagnosisResult(BaseModel):
     recommendations: list[str]
     severity: str
     differential_diagnoses: list[dict]
+    figures: list[dict] = []
 
 
 @app.get("/health")
@@ -56,6 +59,8 @@ async def health_check():
         "status": "ok",
         "model": DOUBAO_MODEL,
         "knowledge_chapters": len(knowledge.chapters),
+        "atlas_sections": len(knowledge.atlas),
+        "farming_chapters": len(farming_knowledge.chapters),
     }
 
 
@@ -73,8 +78,45 @@ async def search_knowledge(request: KnowledgeSearchRequest):
     }
 
 
+@app.post("/knowledge/farming/search")
+async def search_farming_knowledge(request: FarmingSearchRequest):
+    """在《养鸡疑难300问》中检索相关章节（养殖管理问答）"""
+    chapters = farming_knowledge.retrieve(
+        symptoms=[request.query], species="chicken", top_k=request.top_k
+    )
+    return {
+        "total": len(chapters),
+        "results": [
+            {"id": ch.id, "title": ch.title, "excerpt": ch.text[:200]} for ch in chapters
+        ],
+    }
+
+
+@app.get("/knowledge/figures")
+async def get_figures(disease: str = ""):
+    """按病名返回图谱病变图注（诊断结果附图号对照）"""
+    if not disease:
+        return {"total": 0, "results": []}
+    matches = knowledge.lookup_figures(disease, top_k=3)
+    return {"total": len(matches), "results": matches}
+
+
+@app.get("/knowledge/chapter/{chapter_id}")
+async def get_chapter(chapter_id: str):
+    """按章节 id 返回全文（疾病教材或养鸡问答），疾病章节附图谱图注。"""
+    ch = knowledge.chapters.get(chapter_id) or farming_knowledge.chapters.get(chapter_id)
+    if not ch:
+        raise HTTPException(status_code=404, detail="章节不存在")
+    return {
+        "id": ch.id,
+        "title": ch.title,
+        "text": ch.text,
+        "figures": knowledge.lookup_figures(ch.title, top_k=1),
+    }
+
+
 def _build_reference(symptoms: list[str], species: str) -> str:
-    """构造注入提示词的教材知识：速查表 + 最相关章节。"""
+    """构造注入提示词的教材知识：速查表 + 最相关章节（附图谱图注）。"""
     parts: list[str] = []
 
     # 鉴别诊断速查与用药禁忌（紧凑，始终携带）
@@ -83,8 +125,14 @@ def _build_reference(symptoms: list[str], species: str) -> str:
 
     chapters = knowledge.retrieve(symptoms=symptoms, species=species, top_k=3)
     if chapters:
-        blocks = "\n\n".join(f"### {ch.title}\n{ch.text}" for ch in chapters)
-        parts.append("## 相关疾病章节\n" + blocks)
+        blocks: list[str] = []
+        for ch in chapters:
+            block = f"### {ch.title}\n{ch.text}"
+            figs = knowledge.lookup_figures(ch.title, top_k=1)
+            if figs:
+                block += "\n\n#### 图谱诊断要点（病变图注）\n" + figs[0]["text"]
+            blocks.append(block)
+        parts.append("## 相关疾病章节\n" + "\n\n".join(blocks))
 
     return "\n\n".join(parts)
 
@@ -205,6 +253,9 @@ async def diagnose(request: DiagnosisRequest):
             raise HTTPException(status_code=502, detail="AI服务未返回有效文本")
 
         result = _parse_json(text)
+        # 附上诊断疾病的图谱病变图注（供用户对照标准图谱）
+        disease_name = (result.get("disease") or "").strip()
+        result["figures"] = knowledge.lookup_figures(disease_name, top_k=1) if disease_name else []
         return DiagnosisResult(**result)
 
     except httpx.HTTPError as e:

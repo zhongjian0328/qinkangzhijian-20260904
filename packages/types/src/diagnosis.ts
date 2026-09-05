@@ -19,6 +19,12 @@ export interface AIResult {
   recommendations: string[];
   severity: 'low' | 'medium' | 'high' | 'critical';
   differentialDiagnoses: DifferentialDiagnosis[];
+  figures: FigureNote[];
+}
+
+export interface FigureNote {
+  title: string;
+  text: string;
 }
 
 export interface DifferentialDiagnosis {

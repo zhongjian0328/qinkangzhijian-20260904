@@ -24,6 +24,7 @@ export default function RootLayout() {
       <Stack.Screen name="(tabs)" />
       <Stack.Screen name="diagnosis/[id]" />
       <Stack.Screen name="house/[id]" />
+      <Stack.Screen name="knowledge/[id]" />
     </Stack>
   );
 }

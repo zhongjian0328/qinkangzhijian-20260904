@@ -9,7 +9,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { commerceApi } from '../src/api/commerce';
+import { commerceApi } from '../../src/api/commerce';
 import { Product } from '@qinkang/types';
 
 export default function MallScreen() {
@@ -43,10 +43,8 @@ export default function MallScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Text style={styles.back}>‹ 返回</Text>
-        </TouchableOpacity>
         <Text style={styles.title}>兽药商城</Text>
+        <Text style={styles.subtitle}>兽药 · 疫苗 · 饲料在线购买</Text>
       </View>
 
       <View style={styles.searchRow}>
@@ -110,10 +108,10 @@ export default function MallScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 12 },
-  back: { fontSize: 16, color: '#22C55E', fontWeight: '600', marginBottom: 8 },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#111' },
-  searchRow: { paddingHorizontal: 20, marginBottom: 10 },
+  header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16, backgroundColor: '#22C55E' },
+  title: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
+  subtitle: { fontSize: 13, color: '#e0ffe0', marginTop: 4 },
+  searchRow: { paddingHorizontal: 20, marginTop: 16, marginBottom: 10 },
   searchInput: {
     borderWidth: 1,
     borderColor: '#e0e0e0',

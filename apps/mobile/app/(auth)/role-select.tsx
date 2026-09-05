@@ -6,7 +6,7 @@ import {
   StyleSheet,
   ScrollView,
 } from 'react-native';
-import { useRouter, Redirect } from 'expo-router';
+import { useRouter, Redirect, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { MainRole, SubRole } from '@qinkang/types';
 import { useAuthStore } from '../../src/store/auth';
@@ -118,7 +118,10 @@ export default function RoleSelectScreen() {
   const [selected, setSelected] = useState<MainRole>('farmer');
   const [selectedSub, setSelectedSub] = useState<SubRole>('small');
   const router = useRouter();
+  const params = useLocalSearchParams<{ mode?: string }>();
+  const isExperience = params.mode === 'experience';
   const token = useAuthStore((s) => s.token);
+  const enterExperience = useAuthStore((s) => s.enterExperience);
 
   if (token) {
     return <Redirect href="/" />;
@@ -135,6 +138,12 @@ export default function RoleSelectScreen() {
   };
 
   const handleNext = () => {
+    if (isExperience) {
+      // 体验模式：本地写入临时身份，直接进入对应角色主页
+      enterExperience(selected, selectedSub);
+      router.replace('/');
+      return;
+    }
     router.push({ pathname: '/register', params: { role: selected, subRole: selectedSub } });
   };
 
@@ -142,9 +151,11 @@ export default function RoleSelectScreen() {
     <View style={styles.screen}>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>选择您的身份</Text>
+          <Text style={styles.headerTitle}>{isExperience ? '选择体验角色' : '选择您的身份'}</Text>
           <Text style={styles.headerDesc}>
-            不同身份将获得定制化的功能服务与数据看板，选择后可在个人中心随时切换
+            {isExperience
+              ? '选择一个角色，无需注册即可直接进入对应主页体验全部功能'
+              : '不同身份将获得定制化的功能服务与数据看板，选择后可在个人中心随时切换'}
           </Text>
         </View>
 
@@ -214,7 +225,7 @@ export default function RoleSelectScreen() {
 
       <View style={styles.bottomBar}>
         <TouchableOpacity style={styles.btnPrimary} onPress={handleNext}>
-          <Text style={styles.btnPrimaryText}>下一步</Text>
+          <Text style={styles.btnPrimaryText}>{isExperience ? '进入体验' : '下一步'}</Text>
         </TouchableOpacity>
         <TouchableOpacity onPress={() => router.back()}>
           <Text style={styles.skipLink}>返回登录</Text>

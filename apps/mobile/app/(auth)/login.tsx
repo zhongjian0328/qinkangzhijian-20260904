@@ -50,6 +50,10 @@ export default function LoginScreen() {
     Alert.alert('提示', '短信验证码服务暂未开通，请使用密码登录');
   };
 
+  const goExperience = () => {
+    router.push('/role-select?mode=experience');
+  };
+
   const handleSubmit = async () => {
     if (!phone.trim()) {
       Alert.alert('提示', '请填写手机号');
@@ -80,15 +84,23 @@ export default function LoginScreen() {
       style={styles.screen}
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
     >
       {/* 顶部装饰 */}
       <View style={styles.topDecoration} />
-      <View style={styles.bottomDecoration} />
 
-      {/* Logo 区 */}
+      {/* 体验模式入口（右上角） */}
+      <View style={styles.topBar}>
+        <TouchableOpacity style={styles.experienceTopBtn} onPress={goExperience}>
+          <Ionicons name="flash-outline" size={13} color={COLORS.primary} />
+          <Text style={styles.experienceTopText}>体验模式</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Logo 区（紧凑） */}
       <View style={styles.logoSection}>
         <View style={styles.logoIcon}>
-          <Ionicons name="shield-checkmark" size={38} color="#fff" />
+          <Ionicons name="shield-checkmark" size={28} color="#fff" />
         </View>
         <Text style={styles.appName}>禽康智检</Text>
         <Text style={styles.appSlogan}>AI 赋能 · 精准诊断 · 绿色防控</Text>
@@ -190,14 +202,6 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={styles.experienceEntry}
-          onPress={() => router.push('/role-select')}
-        >
-          <Text style={styles.experienceTitle}>体验模式 · 无需登录</Text>
-          <Text style={styles.experienceDesc}>选择角色直接体验全部功能</Text>
-        </TouchableOpacity>
-
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
           <Text style={styles.dividerText}>其他登录方式</Text>
@@ -206,13 +210,13 @@ export default function LoginScreen() {
 
         <View style={styles.socialRow}>
           <TouchableOpacity style={styles.socialBtn}>
-            <Ionicons name="logo-wechat" size={22} color="#07C160" />
+            <Ionicons name="logo-wechat" size={20} color="#07C160" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.socialBtn}>
-            <Ionicons name="chatbubble-ellipses-outline" size={22} color="#1296DB" />
+            <Ionicons name="chatbubble-ellipses-outline" size={20} color="#1296DB" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.socialBtn}>
-            <Ionicons name="add-circle-outline" size={24} color="#FF6B35" />
+            <Ionicons name="add-circle-outline" size={22} color="#FF6B35" />
           </TouchableOpacity>
         </View>
       </View>
@@ -223,7 +227,7 @@ export default function LoginScreen() {
           <Text style={styles.bottomTextLink}>《隐私政策》</Text>
         </Text>
         <Text style={styles.bottomTextSub}>
-          禽康智检 · 禽类养殖智能诊疗平台 v{Constants.expoConfig?.version ?? '3.0.0'}
+          禽康智检 · 禽类养殖智能诊疗平台 v{Constants.expoConfig?.version ?? '3.1.0'}
         </Text>
       </View>
     </ScrollView>
@@ -232,62 +236,72 @@ export default function LoginScreen() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: COLORS.bg },
-  content: { flexGrow: 1, position: 'relative' },
+  content: { flexGrow: 1, position: 'relative', paddingBottom: 20 },
   topDecoration: {
     position: 'absolute',
-    top: -100,
-    right: -60,
-    width: 280,
-    height: 280,
-    borderRadius: 140,
-    backgroundColor: 'rgba(34,197,94,0.08)',
-  },
-  bottomDecoration: {
-    position: 'absolute',
-    bottom: -80,
-    left: -50,
+    top: -120,
+    right: -70,
     width: 240,
     height: 240,
     borderRadius: 120,
-    backgroundColor: 'rgba(37,99,235,0.06)',
+    backgroundColor: 'rgba(34,197,94,0.08)',
   },
-  logoSection: { paddingTop: 64, paddingHorizontal: 24, paddingBottom: 36, alignItems: 'center' },
+  topBar: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 0,
+  },
+  experienceTopBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    backgroundColor: COLORS.primaryBg,
+    borderWidth: 1,
+    borderColor: 'rgba(34,197,94,0.35)',
+    borderRadius: 999,
+  },
+  experienceTopText: { fontSize: 12, fontWeight: '600', color: COLORS.primary },
+  logoSection: { paddingTop: 8, paddingHorizontal: 24, paddingBottom: 20, alignItems: 'center' },
   logoIcon: {
-    width: 76,
-    height: 76,
-    marginBottom: 22,
+    width: 56,
+    height: 56,
+    marginBottom: 12,
     backgroundColor: COLORS.primary,
-    borderRadius: 22,
+    borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     shadowColor: COLORS.primary,
     shadowOpacity: 0.3,
-    shadowRadius: 30,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 8,
+    shadowRadius: 20,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 6,
   },
   appName: {
-    fontSize: 30,
+    fontSize: 24,
     fontWeight: '800',
-    letterSpacing: 3,
+    letterSpacing: 2,
     color: COLORS.textPrimary,
-    marginBottom: 8,
+    marginBottom: 4,
   },
-  appSlogan: { fontSize: 13, color: COLORS.textSecondary, letterSpacing: 1 },
+  appSlogan: { fontSize: 12, color: COLORS.textSecondary, letterSpacing: 1 },
   formSection: { paddingHorizontal: 24 },
   tabGroup: {
     flexDirection: 'row',
     backgroundColor: COLORS.borderLight,
     borderRadius: 12,
     padding: 4,
-    marginBottom: 28,
+    marginBottom: 16,
   },
-  tabItem: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 8 },
+  tabItem: { flex: 1, alignItems: 'center', paddingVertical: 9, borderRadius: 8 },
   tabItemActive: { backgroundColor: '#fff', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 3, shadowOffset: { width: 0, height: 1 }, elevation: 2 },
   tabText: { fontSize: 14, fontWeight: '600', color: COLORS.textSecondary },
   tabTextActive: { color: COLORS.primary },
-  inputGroup: { marginBottom: 18 },
-  inputLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  inputGroup: { marginBottom: 12 },
+  inputLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 },
   inputLabel: { fontSize: 13, color: COLORS.textSecondary, fontWeight: '500' },
   inputWrapper: {
     flexDirection: 'row',
@@ -297,11 +311,11 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     borderRadius: 14,
   },
-  input: { flex: 1, padding: 16, fontSize: 15, color: COLORS.textPrimary },
+  input: { flex: 1, padding: 13, fontSize: 15, color: COLORS.textPrimary },
   codeBtn: {
     marginRight: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
+    paddingVertical: 7,
+    paddingHorizontal: 12,
     backgroundColor: COLORS.primaryBg,
     borderWidth: 1,
     borderColor: 'rgba(34,197,94,0.3)',
@@ -310,46 +324,35 @@ const styles = StyleSheet.create({
   codeBtnText: { fontSize: 12, fontWeight: '600', color: COLORS.primary },
   btnPrimary: {
     width: '100%',
-    padding: 16,
+    padding: 14,
     backgroundColor: COLORS.primary,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 52,
-    marginTop: 8,
+    minHeight: 48,
+    marginTop: 4,
     shadowColor: COLORS.primary,
     shadowOpacity: 0.3,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 6,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 5,
   },
   btnDisabled: { opacity: 0.7 },
   btnPrimaryText: { fontSize: 16, fontWeight: '700', color: '#fff', letterSpacing: 2 },
   formFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 16,
+    marginTop: 12,
   },
   footerLink: { fontSize: 13, color: COLORS.primary },
-  experienceEntry: {
-    marginTop: 24,
-    padding: 16,
-    backgroundColor: COLORS.primaryBg,
-    borderWidth: 1,
-    borderColor: 'rgba(34,197,94,0.15)',
-    borderRadius: 14,
-    alignItems: 'center',
-  },
-  experienceTitle: { fontSize: 14, fontWeight: '700', color: COLORS.primary, marginBottom: 4 },
-  experienceDesc: { fontSize: 12, color: COLORS.textSecondary },
-  divider: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 28, marginBottom: 20 },
+  divider: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 18, marginBottom: 14 },
   dividerLine: { flex: 1, height: 1, backgroundColor: COLORS.border },
   dividerText: { fontSize: 12, color: COLORS.textMuted },
-  socialRow: { flexDirection: 'row', justifyContent: 'center', gap: 20, marginBottom: 8 },
+  socialRow: { flexDirection: 'row', justifyContent: 'center', gap: 16, marginBottom: 4 },
   socialBtn: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 42,
+    height: 42,
+    borderRadius: 21,
     backgroundColor: '#fff',
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -361,7 +364,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     elevation: 2,
   },
-  bottomText: { paddingHorizontal: 24, paddingTop: 16, paddingBottom: 40, alignItems: 'center' },
+  bottomText: { paddingHorizontal: 24, paddingTop: 12, alignItems: 'center' },
   bottomTextMain: { fontSize: 12, color: COLORS.textMuted, lineHeight: 18 },
   bottomTextLink: { color: COLORS.primary },
   bottomTextSub: { fontSize: 12, color: COLORS.textMuted, lineHeight: 18, marginTop: 2 },

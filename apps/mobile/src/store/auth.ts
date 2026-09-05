@@ -18,6 +18,7 @@ interface AuthState {
     role?: MainRole,
     subRole?: SubRole | null,
   ) => Promise<void>;
+  enterExperience: (role: MainRole, subRole: SubRole) => void;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
 }
@@ -87,6 +88,21 @@ export const useAuthStore = create<AuthState>((set) => ({
     } finally {
       set({ isLoading: false });
     }
+  },
+
+  enterExperience: (role: MainRole, subRole: SubRole) => {
+    const now = new Date().toISOString();
+    const guest: User = {
+      id: 'guest',
+      username: '体验用户',
+      phone: '',
+      role,
+      subRole,
+      createdAt: now,
+      updatedAt: now,
+    };
+    // 本地体验模式：不写 SecureStore、不设 API token，会话结束即失效
+    set({ user: guest, token: 'guest' });
   },
 
   logout: async () => {

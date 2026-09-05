@@ -43,11 +43,10 @@ export default function InternLogListScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="arrow-back" size={22} color="#111" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>实习日志</Text>
-        <View style={styles.headerSpacer} />
+        <Text style={styles.title}>实习日志</Text>
+        <Text style={styles.subtitle}>
+          {mentor ? '学生日志查看 · 批注评分' : '每日记录 · 图片 · 学生诊断判断'}
+        </Text>
       </View>
 
       {loading ? (
@@ -92,17 +91,9 @@ export default function InternLogListScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f5' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingTop: 52,
-    paddingBottom: 12,
-    backgroundColor: '#fff',
-  },
-  backBtn: { width: 32 },
-  headerTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '600', color: '#111' },
-  headerSpacer: { width: 32 },
+  header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 16, backgroundColor: '#22C55E' },
+  title: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
+  subtitle: { fontSize: 13, color: '#e0ffe0', marginTop: 4 },
   loading: { marginTop: 60 },
   empty: { color: '#999', textAlign: 'center', marginTop: 60 },
   content: { padding: 16, paddingBottom: 100 },

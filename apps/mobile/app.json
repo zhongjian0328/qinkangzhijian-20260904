@@ -2,7 +2,7 @@
   "expo": {
     "name": "禽康智检",
     "slug": "qinkangzhijian",
-    "version": "3.9.0",
+    "version": "4.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
@@ -15,7 +15,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "13",
+      "buildNumber": "14",
       "bundleIdentifier": "com.qinkangzhijian.app",
       "infoPlist": {
         "NSCameraUsageDescription": "需要访问相机以拍摄禽类照片进行AI诊断",
@@ -23,7 +23,7 @@
       }
     },
     "android": {
-      "versionCode": 13,
+      "versionCode": 14,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#22C55E"

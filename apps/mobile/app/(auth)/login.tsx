@@ -227,7 +227,7 @@ export default function LoginScreen() {
           <Text style={styles.bottomTextLink}>《隐私政策》</Text>
         </Text>
         <Text style={styles.bottomTextSub}>
-          禽康智检 · 禽类养殖智能诊疗平台 v{Constants.expoConfig?.version ?? '3.9.0'}
+          禽康智检 · 禽类养殖智能诊疗平台 v{Constants.expoConfig?.version ?? '4.0.0'}
         </Text>
       </View>
     </ScrollView>

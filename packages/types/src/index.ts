@@ -21,3 +21,4 @@ export * from './epidemic-alert';
 export * from './epidemiology';
 export * from './course';
 export * from './exam-paper';
+export * from './vet-diagnosis';

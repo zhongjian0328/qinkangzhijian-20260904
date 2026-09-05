@@ -52,6 +52,7 @@ model User {
   courses           Course[]         @relation("TeacherCourses")
   courseProgresses  CourseProgress[] @relation("StudentProgress")
   examPapers        ExamPaper[]      @relation("TeacherPapers")
+  vetCases          VetCase[]
 
   @@map("users")
 }
@@ -147,6 +148,40 @@ model Diagnosis {
 
   @@index([userId, createdAt])
   @@map("diagnoses")
+}
+
+model VetCase {
+  id                 String   @id @default(uuid())
+  caseNo             String   @unique
+  userId             String
+  user               User     @relation(fields: [userId], references: [id])
+  status             String   @default("draft") // draft/submitted/analyzing/completed/failed/offline
+  species            String   @default("chicken")
+
+  // 9 大维度结构化信息（JSON）
+  basicInfo          Json?
+  chiefComplaint     Json?
+  clinicalSymptoms   Json?
+  necropsyLesions    Json?
+  labTests           Json?
+  immuneHistory      Json?
+  medicationHistory  Json?
+  environment        Json?
+  epidemiology       Json?
+
+  imageUrls          String[] @default([])
+
+  // 诊断结果
+  diagnosisResult    Json?
+  diagnosisEngine    String?   // doubao_2_1_turbo / offline_rule
+  confidence         Float?
+  feedback           String?
+
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@map("vet_cases")
 }
 
 model Alert {

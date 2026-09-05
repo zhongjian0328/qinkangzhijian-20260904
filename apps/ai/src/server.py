@@ -80,6 +80,38 @@ class PreventionPlanResult(BaseModel):
     follow_up_notes: str
 
 
+class VetDiagnoseRequest(BaseModel):
+    """AI兽医诊断：9 大维度结构化信息 + 图片（对齐《AI兽医诊断功能开发文档_v2.md》）"""
+    species: str = "chicken"
+    basic_info: Optional[dict] = None
+    chief_complaint: Optional[dict] = None
+    clinical_symptoms: Optional[dict] = None
+    necropsy_lesions: Optional[dict] = None
+    lab_tests: Optional[dict] = None
+    immune_history: Optional[dict] = None
+    medication_history: Optional[dict] = None
+    environment: Optional[dict] = None
+    epidemiology: Optional[dict] = None
+    image_urls: list[str] = []
+    role: str = "farmer"
+    sub_role: str = ""
+
+
+class VetDiagnosisResult(BaseModel):
+    disease: str
+    confidence: float
+    severity: str
+    primary: dict                    # {"disease": str, "confidence": float}
+    secondaries: list[dict] = []     # [{"disease": str, "confidence": float}]
+    excluded: list[str] = []         # 已排除疾病及原因
+    evidence: list[str] = []         # 诊断依据
+    differential_tests: list[str] = []  # 鉴别诊断建议（实验室检测）
+    treatment: dict = {}             # {emergency/medication/immunization/disinfection/management: [..]}
+    followup: list[str] = []         # 随访建议
+    disclaimer: str = ""
+    risk_warning: Optional[str] = None  # 危重预警
+
+
 @app.get("/health")
 async def health_check():
     return {
@@ -333,6 +365,209 @@ async def diagnose(request: DiagnosisRequest):
         raise HTTPException(status_code=502, detail=f"AI返回结果解析失败: {e}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"诊断失败: {e}")
+
+
+# ---------------- AI兽医诊断（结构化 9 维 + 多模态豆包） ----------------
+
+DIM_LABELS = {
+    "basic_info": "1. 基本信息",
+    "chief_complaint": "2. 主诉与病史",
+    "clinical_symptoms": "3. 临床症状",
+    "necropsy_lesions": "4. 剖检病变",
+    "lab_tests": "5. 实验室检测",
+    "immune_history": "6. 免疫史",
+    "medication_history": "7. 用药史",
+    "environment": "8. 环境与管理",
+    "epidemiology": "9. 流行病学",
+}
+
+FIELD_LABELS = {
+    "species": "动物种类", "breed": "品种", "ageDays": "日龄(天)", "stock": "存栏量(羽)",
+    "sickCount": "发病数(羽)", "deathCount": "死亡数(羽)", "feedingMode": "饲养方式",
+    "productionStage": "养殖阶段", "mainProblem": "主诉", "onsetTime": "发病时间",
+    "course": "病程", "progression": "发病经过", "mortalityTrend": "死亡率趋势",
+    "transmissionSpeed": "传播速度", "pastHistory": "既往病史",
+    "general": "一般状态", "digestive": "消化道", "respiratory": "呼吸道",
+    "reproductive": "生殖道", "nervous": "神经", "skinMucosa": "皮肤黏膜",
+    "motor": "运动", "other": "其他", "note": "补充描述",
+    "subcutaneousMuscle": "皮下肌肉", "circulatory": "循环系统",
+    "urinaryReproductive": "泌尿生殖", "immuneOrgans": "免疫器官",
+    "serology": "血清学", "pathogen": "病原学", "bacteriology": "细菌学",
+    "parasitology": "寄生虫", "biochemistry": "生化", "cbc": "血常规",
+    "program": "免疫程序", "lastVaccine": "最近免疫", "postVaccineReaction": "免疫后反应",
+    "antibodyTest": "抗体检测", "vaccineFailureHistory": "免疫失败史",
+    "recentDrugs": "最近用药", "effect": "用药效果", "allergyHistory": "药物过敏史",
+    "healthProducts": "保健药物", "withdrawalPeriod": "休药期",
+    "temperature": "温度", "humidity": "湿度", "ventilation": "通风", "density": "密度",
+    "feed": "饲料", "water": "饮水", "light": "光照", "weatherChange": "天气变化",
+    "humanTraffic": "人员流动", "surroundingEpidemic": "周边疫情", "biosecurity": "生物安全",
+    "introductionHistory": "引种史", "vaccineSource": "疫苗来源", "flockSource": "鸡群来源",
+    "mixedFarming": "混养情况", "wildBirdContact": "野鸟接触", "similarFarms": "同类养殖场",
+    "deadBirdDisposal": "病死鸡处理",
+}
+
+
+def _fmt_field(label: str, value) -> str:
+    if value is None or value == "" or value == [] or value == {}:
+        return ""
+    if isinstance(value, list):
+        return f"- {label}：{'、'.join(str(v) for v in value)}"
+    if isinstance(value, bool):
+        return f"- {label}：{'是' if value else '否'}"
+    return f"- {label}：{value}"
+
+
+def _build_vet_case_text(req: VetDiagnoseRequest) -> str:
+    """把 9 大维度结构化信息组装为紧凑的专业病例文本。"""
+    lines = ["【病例信息】"]
+    dims = [
+        ("basic_info", req.basic_info),
+        ("chief_complaint", req.chief_complaint),
+        ("clinical_symptoms", req.clinical_symptoms),
+        ("necropsy_lesions", req.necropsy_lesions),
+        ("lab_tests", req.lab_tests),
+        ("immune_history", req.immune_history),
+        ("medication_history", req.medication_history),
+        ("environment", req.environment),
+        ("epidemiology", req.epidemiology),
+    ]
+    for dim_key, dim_val in dims:
+        if not dim_val:
+            continue
+        lines.append(f"\n## {DIM_LABELS[dim_key]}")
+        if isinstance(dim_val, dict):
+            for field, value in dim_val.items():
+                if field in ("photos", "photoUrls"):
+                    continue
+                line = _fmt_field(FIELD_LABELS.get(field, field), value)
+                if line:
+                    lines.append(line)
+        else:
+            lines.append(str(dim_val))
+    return "\n".join(lines)
+
+
+def _collect_vet_symptoms(req: VetDiagnoseRequest) -> list[str]:
+    """从结构化信息中提取关键词，用于知识库检索。"""
+    symptoms: list[str] = []
+    cs = req.clinical_symptoms or {}
+    for cat in ("general", "digestive", "respiratory", "reproductive",
+                "nervous", "skinMucosa", "motor", "other"):
+        v = cs.get(cat)
+        if isinstance(v, list):
+            symptoms.extend(v)
+    nl = req.necropsy_lesions or {}
+    for cat in ("subcutaneousMuscle", "digestive", "respiratory", "circulatory",
+                "urinaryReproductive", "immuneOrgans", "nervous", "other"):
+        v = nl.get(cat)
+        if isinstance(v, list):
+            symptoms.extend(v)
+    cc = req.chief_complaint or {}
+    if cc.get("mainProblem"):
+        symptoms.append(cc["mainProblem"])
+    return symptoms
+
+
+@app.post("/vet-diagnose", response_model=VetDiagnosisResult)
+async def vet_diagnose(request: VetDiagnoseRequest):
+    """AI兽医诊断：结构化 9 维信息 + 多模态豆包深度鉴别诊断（对齐 doc v2 第四章）。"""
+
+    case_text = _build_vet_case_text(request)
+    symptoms = _collect_vet_symptoms(request)
+    reference = _build_reference(symptoms, request.species, top_k=3)
+    role_note = _diagnose_role_note(request.role, request.sub_role)
+
+    system_prompt = f"""你是一位经验丰富的禽病临床兽医专家，拥有20年临床诊断经验。请根据以下完整的结构化病例信息，进行专业的鉴别诊断。{role_note}
+
+【诊断流程】
+1. 综合分析9大维度信息（基本信息+主诉+临床症状+剖检病变+实验室检测+免疫史+用药史+环境管理+流行病学）
+2. 列出最可能的疾病，按可能性从高到低排序，给出置信度
+3. 详细列出支持每种疾病的依据（对应到具体症状/病变/检测结果）
+4. 列出已排除的疾病及排除原因
+5. 给出鉴别诊断建议（需做哪些实验室检测进一步确诊）
+6. 给出完整防控方案（紧急处理+用药+免疫+消毒+管理）
+
+【重要规则】
+- 必须基于提供的信息诊断，不要编造不存在的症状
+- 信息不足时要明确指出并建议补充
+- 用药方案必须标注休药期，不给出具体处方剂量（处方权属于执业兽医）
+- 烈性传染病（禽流感H5/H7、新城疫强毒等）必须在 risk_warning 中强烈建议立即上报疫控部门
+- severity 取值：low/medium/high/critical
+- 每次回复必须包含免责声明
+
+【教材参考知识】
+{reference}
+
+请严格按以下 JSON 格式返回，仅返回 JSON，不要其他内容：
+{{
+  "disease": "首要诊断疾病名",
+  "confidence": 0.0-1.0,
+  "severity": "low/medium/high/critical",
+  "primary": {{"disease": "首要诊断", "confidence": 0.0-1.0}},
+  "secondaries": [{{"disease": "次要诊断", "confidence": 0.0-1.0}}],
+  "excluded": ["已排除疾病及原因"],
+  "evidence": ["诊断依据1", "依据2"],
+  "differential_tests": ["实验室检测建议1", "建议2"],
+  "treatment": {{
+    "emergency": ["紧急处理"],
+    "medication": ["用药方案"],
+    "immunization": ["免疫建议"],
+    "disinfection": ["消毒管理"],
+    "management": ["管理调整"]
+  }},
+  "followup": ["3日回访要点", "7日回访要点", "15日回访要点"],
+  "disclaimer": "本报告由AI生成，仅供参考，不能替代执业兽医诊断。",
+  "risk_warning": "危重预警（无则 null）"
+}}"""
+
+    try:
+        async with httpx.AsyncClient(timeout=DOUBAO_TIMEOUT) as client:
+            content: list = [
+                {"type": "input_text", "text": f"{system_prompt}\n\n{case_text}\n\n请根据以上完整病例信息，按照系统提示的诊断流程和输出格式，给出专业的鉴别诊断和防控方案。"}
+            ]
+            for url in (request.image_urls or []):
+                content.append({"type": "input_image", "image_url": url})
+            response = await client.post(
+                DOUBAO_API_URL,
+                headers={
+                    "Authorization": f"Bearer {DOUBAO_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": DOUBAO_MODEL,
+                    "thinking": {"type": "disabled"},
+                    "input": [{"role": "user", "content": content}],
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
+
+        text = _extract_text(data)
+        if not text:
+            raise HTTPException(status_code=502, detail="AI服务未返回有效文本")
+
+        result = _parse_json(text)
+        # 归一化 treatment/followup 字段，兜底缺失
+        treatment = result.get("treatment") or {}
+        for key in ("emergency", "medication", "immunization", "disinfection", "management"):
+            treatment.setdefault(key, [])
+        result["treatment"] = treatment
+        result.setdefault("secondaries", [])
+        result.setdefault("excluded", [])
+        result.setdefault("evidence", [])
+        result.setdefault("differential_tests", [])
+        result.setdefault("followup", [])
+        result.setdefault("disclaimer", "本报告由AI生成，仅供参考，不能替代执业兽医诊断。")
+        if "risk_warning" not in result:
+            result["risk_warning"] = None
+        return VetDiagnosisResult(**result)
+
+    except httpx.HTTPError as e:
+        raise HTTPException(status_code=502, detail=f"AI服务调用失败[{type(e).__name__}]: {e}")
+    except (json.JSONDecodeError, KeyError, TypeError) as e:
+        raise HTTPException(status_code=502, detail=f"AI返回结果解析失败: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI兽医诊断失败: {e}")
 
 
 @app.post("/prevention/generate", response_model=PreventionPlanResult)

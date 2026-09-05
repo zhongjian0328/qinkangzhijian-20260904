@@ -28,6 +28,7 @@ import { EpidemiologyModule } from './modules/epidemiology/epidemiology.module';
 import { CourseModule } from './modules/course/course.module';
 import { ExamPaperModule } from './modules/exam-paper/exam-paper.module';
 import { ExportModule } from './modules/export/export.module';
+import { VetDiagnosisModule } from './modules/vet-diagnosis/vet-diagnosis.module';
 
 @Module({
   imports: [
@@ -63,6 +64,7 @@ import { ExportModule } from './modules/export/export.module';
     CourseModule,
     ExamPaperModule,
     ExportModule,
+    VetDiagnosisModule,
   ],
 })
 export class AppModule {}

@@ -16,8 +16,9 @@ ENV PRISMA_ENGINES_MIRROR=https://registry.npmmirror.com/-/binary/prisma
 
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @qinkang/types build
-RUN pnpm --filter api build
+# 先按当前 schema 生成 Prisma Client，再编译（否则 nest build 类型检查拿不到新模型类型）
 RUN pnpm --filter api db:generate
+RUN pnpm --filter api build
 
 WORKDIR /app/apps/api
 EXPOSE 3000

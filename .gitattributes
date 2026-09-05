@@ -1,0 +1,3 @@
+# 保证 shell 脚本在 Linux 服务器上以 LF 结尾，批处理在 Windows 上以 CRLF 结尾
+*.sh  text eol=lf
+*.bat text eol=crlf

@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "禽康智检",
-    "slug": "qkzj-new",
+    "slug": "qinkangzhijian",
     "version": "3.8.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -68,9 +68,9 @@
         "origin": false
       },
       "eas": {
-        "projectId": "361f85fe-50b4-4b8a-8db0-5f91b6f50cee"
+        "projectId": "f1a51a79-917d-4f88-9ab5-091356aaba75"
       }
     },
-    "owner": "zhongjian475"
+    "owner": "qkzj-builds-team"
   }
 }

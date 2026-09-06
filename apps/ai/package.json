@@ -1,6 +1,6 @@
 {
   "name": "ai-service",
-  "version": "4.1.0",
+  "version": "4.2.0",
   "private": true,
   "scripts": {
     "dev": "python src/server.py",

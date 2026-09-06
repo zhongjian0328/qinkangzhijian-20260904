@@ -1,5 +1,21 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
+import { promises as fs } from 'fs';
+import { join, basename } from 'path';
 import { PrismaService } from '../../common/prisma.service';
+import { UPLOAD_DIR } from '../../common/upload.config';
+
+const EXT_MIME: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  gif: 'image/gif',
+};
+
+function mimeFromUrl(url: string): string {
+  const ext = basename(url).split('.').pop()?.toLowerCase() ?? 'jpg';
+  return EXT_MIME[ext] ?? 'image/jpeg';
+}
 
 interface RawConsultReply {
   reply: string;
@@ -18,6 +34,13 @@ export class ConsultService {
 
   private aiUrl() {
     return process.env.AI_SERVICE_URL ?? 'http://localhost:5000';
+  }
+
+  /** 把落盘图片读出来转成 base64 data URI，供豆包多模态接口内联使用（豆包无法解析相对路径） */
+  private async readAsDataUri(url: string): Promise<string> {
+    if (url.startsWith('data:')) return url;
+    const buf = await fs.readFile(join(UPLOAD_DIR, basename(url)));
+    return `data:${mimeFromUrl(url)};base64,${buf.toString('base64')}`;
   }
 
   async sendMessage(
@@ -54,7 +77,12 @@ export class ConsultService {
     };
     const fullHistory = [...history, userMessage];
 
-    const reply = await this.callAI(fullHistory, dto.imageUrls ?? [], dto.role, dto.subRole);
+    // 图片转 base64 data URI 再发给 AI（对齐 diagnosis / vet-diagnosis 的处理，豆包无法解析 /uploads 相对路径）
+    const imageDataUris = await Promise.all(
+      (dto.imageUrls ?? []).map((url) => this.readAsDataUri(url)),
+    );
+
+    const reply = await this.callAI(fullHistory, imageDataUris, dto.role, dto.subRole);
 
     const assistantMessage = {
       role: 'assistant',

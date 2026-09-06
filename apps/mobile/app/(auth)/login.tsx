@@ -201,7 +201,10 @@ export default function LoginScreen() {
             <Text style={styles.footerLink}>注册新账号</Text>
           </TouchableOpacity>
         </View>
+      </View>
 
+      {/* 底部区（其他登录方式 → 版本信息）贴近屏幕底部 */}
+      <View style={styles.bottomSection}>
         <View style={styles.divider}>
           <View style={styles.dividerLine} />
           <Text style={styles.dividerText}>其他登录方式</Text>
@@ -219,16 +222,16 @@ export default function LoginScreen() {
             <Ionicons name="add-circle-outline" size={22} color="#FF6B35" />
           </TouchableOpacity>
         </View>
-      </View>
 
-      <View style={styles.bottomText}>
-        <Text style={styles.bottomTextMain}>
-          登录即表示同意 <Text style={styles.bottomTextLink}>《用户协议》</Text> 和{' '}
-          <Text style={styles.bottomTextLink}>《隐私政策》</Text>
-        </Text>
-        <Text style={styles.bottomTextSub}>
-          禽康智检 · 禽类养殖智能诊疗平台 v{Constants.expoConfig?.version ?? '4.1.0'}
-        </Text>
+        <View style={styles.bottomText}>
+          <Text style={styles.bottomTextMain}>
+            登录即表示同意 <Text style={styles.bottomTextLink}>《用户协议》</Text> 和{' '}
+            <Text style={styles.bottomTextLink}>《隐私政策》</Text>
+          </Text>
+          <Text style={styles.bottomTextSub}>
+            禽康智检 · 禽类养殖智能诊疗平台 v{Constants.expoConfig?.version ?? '4.2.0'}
+          </Text>
+        </View>
       </View>
     </ScrollView>
   );
@@ -250,7 +253,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     paddingHorizontal: 20,
-    paddingTop: 46,
+    paddingTop: 64,
     paddingBottom: 0,
   },
   experienceTopBtn: {
@@ -265,7 +268,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
   },
   experienceTopText: { fontSize: 14, fontWeight: '600', color: COLORS.primary },
-  logoSection: { paddingTop: 6, paddingHorizontal: 24, paddingBottom: 14, alignItems: 'center' },
+  logoSection: { paddingTop: 24, paddingHorizontal: 24, paddingBottom: 20, alignItems: 'center' },
   logoIcon: {
     width: 76,
     height: 76,
@@ -364,7 +367,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 1 },
     elevation: 2,
   },
-  bottomText: { paddingHorizontal: 24, paddingTop: 12, alignItems: 'center' },
+  bottomSection: { marginTop: 'auto', paddingHorizontal: 24, paddingBottom: 8 },
+  bottomText: { paddingTop: 12, alignItems: 'center' },
   bottomTextMain: { fontSize: 12, color: COLORS.textMuted, lineHeight: 18 },
   bottomTextLink: { color: COLORS.primary },
   bottomTextSub: { fontSize: 12, color: COLORS.textMuted, lineHeight: 18, marginTop: 2 },

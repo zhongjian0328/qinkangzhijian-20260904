@@ -14,6 +14,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import { ConsultMessage, ConsultSession } from '@qinkang/types';
@@ -44,6 +45,18 @@ async function uriToDataUri(uri: string): Promise<string> {
     encoding: FileSystem.EncodingType.Base64,
   });
   return `data:${getMime(uri)};base64,${base64}`;
+}
+
+// 剥离 AI 回复中的 markdown 星号/井号等标记，让 `**加粗**`、`*列表*` 不再以星号原样显示
+function stripMarkdown(text: string): string {
+  return text
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/\*(.+?)\*/g, '$1')
+    .replace(/^\s*[-*]\s+/gm, '• ')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/`(.+?)`/g, '$1')
+    .replace(/[*#]/g, '')
+    .replace(/\n{3,}/g, '\n\n');
 }
 
 function welcomeText(role?: string, subRole?: string | null): string {
@@ -196,7 +209,22 @@ export default function ConsultScreen() {
     }
   };
 
-  const goToVet = () => router.push('/service');
+  const goToVet = () => {
+    // 把最新诊断结论带入诊疗服务的「服务需求」栏，实现转人工自动填单
+    const diagMsg = [...data]
+      .reverse()
+      .find((m) => m.role === 'assistant' && m.diagnosis?.preliminaryDiagnosis);
+    let desc = '来自AI对话问诊转诊，请协助进一步诊断';
+    if (diagMsg?.diagnosis) {
+      const d = diagMsg.diagnosis;
+      const parts = [`初步诊断：${d.preliminaryDiagnosis}`];
+      if (typeof d.confidence === 'number') parts.push(`置信度 ${(d.confidence * 100).toFixed(0)}%`);
+      if (d.suggestions?.length) parts.push(`建议：${d.suggestions.join('；')}`);
+      if (d.nextSteps) parts.push(`后续：${d.nextSteps}`);
+      desc = parts.join('\n');
+    }
+    router.push({ pathname: '/service', params: { desc } });
+  };
 
   // 最后一条带诊断结论的 AI 消息索引（用于在其下方显示「生成报告/转人工」按钮）
   const lastDiagIndex = data.reduce(
@@ -211,7 +239,11 @@ export default function ConsultScreen() {
     const showActions = !isUser && index === lastDiagIndex;
     return (
       <View style={[styles.msgRow, isUser ? styles.msgRowUser : styles.msgRowAi]}>
-        {!isUser && <Text style={styles.aiAvatar}>🐔</Text>}
+        {!isUser && (
+          <View style={styles.aiAvatar}>
+            <Ionicons name="medkit" size={16} color="#fff" />
+          </View>
+        )}
         <View style={styles.msgCol}>
           {item.imageUrls?.length ? (
             <View style={styles.msgImages}>
@@ -221,7 +253,9 @@ export default function ConsultScreen() {
             </View>
           ) : null}
           <View style={[styles.bubble, isUser ? styles.bubbleUser : styles.bubbleAi]}>
-            <Text style={isUser ? styles.bubbleTextUser : styles.bubbleTextAi}>{item.content}</Text>
+            <Text style={isUser ? styles.bubbleTextUser : styles.bubbleTextAi}>
+              {isUser ? item.content : stripMarkdown(item.content)}
+            </Text>
           </View>
 
           {!isUser && related?.length ? (
@@ -250,7 +284,7 @@ export default function ConsultScreen() {
                 </View>
               ) : null}
               {diag.nextSteps ? (
-                <Text style={styles.diagNext}>后续建议：{diag.nextSteps}</Text>
+                <Text style={styles.diagNext}>后续建议：{stripMarkdown(diag.nextSteps)}</Text>
               ) : null}
             </View>
           ) : null}
@@ -377,7 +411,7 @@ export default function ConsultScreen() {
 
           <View style={styles.inputBar}>
             <TouchableOpacity style={styles.imgBtn} onPress={pickImages}>
-              <Text style={styles.imgBtnText}>🖼</Text>
+              <Ionicons name="image-outline" size={22} color="#22C55E" />
             </TouchableOpacity>
             <TextInput
               style={styles.input}
@@ -479,7 +513,16 @@ const styles = StyleSheet.create({
   msgRow: { flexDirection: 'row', marginBottom: 14 },
   msgRowUser: { justifyContent: 'flex-end' },
   msgRowAi: { justifyContent: 'flex-start' },
-  aiAvatar: { fontSize: 22, marginRight: 8, marginTop: 2 },
+  aiAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: '#22C55E',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 8,
+    marginTop: 2,
+  },
   msgCol: { maxWidth: '82%', alignItems: 'flex-start' },
   msgImages: { flexDirection: 'row', gap: 6, marginBottom: 6, alignSelf: 'flex-end' },
   msgImg: { width: 72, height: 72, borderRadius: 10, backgroundColor: '#e5e7eb' },
@@ -546,8 +589,14 @@ const styles = StyleSheet.create({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: '#e5e7eb',
   },
-  imgBtn: { padding: 8 },
-  imgBtnText: { fontSize: 22 },
+  imgBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: '#ecfdf5',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   input: {
     flex: 1,
     borderWidth: 1,

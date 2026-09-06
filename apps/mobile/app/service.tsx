@@ -40,13 +40,13 @@ const STATUS_COLOR: Record<string, string> = {
 
 export default function ServiceScreen() {
   const router = useRouter();
-  const { tab: initTab } = useLocalSearchParams<{ tab?: string }>();
+  const { tab: initTab, desc: initDesc } = useLocalSearchParams<{ tab?: string; desc?: string }>();
   const user = useAuthStore((s) => s.user);
   const isVet = !!user && ['vet', 'technician', 'admin'].includes(user.role);
 
   const [tab, setTab] = useState<Tab>(() => (isVet && initTab === 'pool' ? 'pool' : 'book'));
   const [serviceType, setServiceType] = useState<ServiceType>('online');
-  const [description, setDescription] = useState('');
+  const [description, setDescription] = useState(initDesc ?? '');
   const [address, setAddress] = useState('');
   const [submitting, setSubmitting] = useState(false);
 

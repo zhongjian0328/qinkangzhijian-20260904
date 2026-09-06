@@ -97,6 +97,12 @@ class VetDiagnoseRequest(BaseModel):
     sub_role: str = ""
 
 
+class VetOcrRequest(BaseModel):
+    """AI兽医诊断：报告/记录拍照识别（OCR 文字提取）"""
+    image_url: str
+    field: str = ""
+
+
 class VetDiagnosisResult(BaseModel):
     disease: str
     confidence: float
@@ -406,6 +412,28 @@ FIELD_LABELS = {
     "deadBirdDisposal": "病死鸡处理",
 }
 
+# 未选择即标注「未见异常」的症状/病变分类（一般状态除外，因其为常规描述项）
+SYMPTOM_NEGATIVE_LABELS = {
+    "digestive": "消化道症状",
+    "respiratory": "呼吸道症状",
+    "reproductive": "生殖道症状",
+    "nervous": "神经症状",
+    "skinMucosa": "皮肤黏膜",
+    "motor": "运动症状",
+    "other": "其他症状",
+}
+
+LESION_NEGATIVE_LABELS = {
+    "subcutaneousMuscle": "皮下与肌肉",
+    "digestive": "消化系统",
+    "respiratory": "呼吸系统",
+    "circulatory": "循环系统",
+    "urinaryReproductive": "泌尿生殖",
+    "immuneOrgans": "免疫器官",
+    "nervous": "神经系统",
+    "other": "其他病变",
+}
+
 
 def _fmt_field(label: str, value) -> str:
     if value is None or value == "" or value == [] or value == {}:
@@ -442,6 +470,15 @@ def _build_vet_case_text(req: VetDiagnoseRequest) -> str:
                 line = _fmt_field(FIELD_LABELS.get(field, field), value)
                 if line:
                     lines.append(line)
+            # 未选择的症状/病变分类 → 明确标注「未见异常」，避免模型误判缺失
+            if dim_key == "clinical_symptoms":
+                for key, label in SYMPTOM_NEGATIVE_LABELS.items():
+                    if not dim_val.get(key):
+                        lines.append(f"- {label}：未见异常")
+            elif dim_key == "necropsy_lesions":
+                for key, label in LESION_NEGATIVE_LABELS.items():
+                    if not dim_val.get(key):
+                        lines.append(f"- {label}：未见异常")
         else:
             lines.append(str(dim_val))
     return "\n".join(lines)
@@ -568,6 +605,56 @@ async def vet_diagnose(request: VetDiagnoseRequest):
         raise HTTPException(status_code=502, detail=f"AI返回结果解析失败: {e}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI兽医诊断失败: {e}")
+
+
+@app.post("/vet-diagnose/ocr")
+async def vet_diagnose_ocr(request: VetOcrRequest):
+    """报告/记录拍照识别：用豆包多模态读取图片中的文字内容，供前端填入表单。"""
+    if not request.image_url:
+        raise HTTPException(status_code=400, detail="缺少识别图片")
+
+    field_hint = f"，这是一份「{request.field}」的报告/记录" if request.field else ""
+    prompt = f"""请识别并转录这张图片中的全部文字内容{field_hint}。
+要求：
+1. 忠实转录图片中的文字、数字、单位与关键结论，不要添加解释或评价
+2. 若图片中有表格，按「项目名：数值/内容」逐行整理
+3. 保留关键检测指标及其结果（如抗体滴度、细菌培养结果、血液指标等）
+4. 直接输出转录结果，不要任何前缀或说明"""
+
+    try:
+        async with httpx.AsyncClient(timeout=DOUBAO_TIMEOUT) as client:
+            response = await client.post(
+                DOUBAO_API_URL,
+                headers={
+                    "Authorization": f"Bearer {DOUBAO_API_KEY}",
+                    "Content-Type": "application/json",
+                },
+                json={
+                    "model": DOUBAO_MODEL,
+                    "thinking": {"type": "disabled"},
+                    "input": [
+                        {
+                            "role": "user",
+                            "content": [
+                                {"type": "input_image", "image_url": request.image_url},
+                                {"type": "input_text", "text": prompt},
+                            ],
+                        }
+                    ],
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
+
+        text = _extract_text(data)
+        if not text:
+            raise HTTPException(status_code=502, detail="AI服务未返回有效文本")
+        return {"text": text.strip()}
+
+    except httpx.HTTPError as e:
+        raise HTTPException(status_code=502, detail=f"AI服务调用失败[{type(e).__name__}]: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"报告识别失败: {e}")
 
 
 @app.post("/prevention/generate", response_model=PreventionPlanResult)

@@ -167,11 +167,22 @@ export default function ConsultScreen() {
       return;
     }
 
+    // 点击发送后立即清空输入框与图片，并乐观地把用户消息展示到对话里（避免等待期间内容仍停留在输入框）
+    const localImages = [...images];
+    const optimisticMsg: ConsultMessage = {
+      role: 'user',
+      content,
+      imageUrls: localImages.length ? localImages : undefined,
+      createdAt: new Date().toISOString(),
+    };
+    setInput('');
+    setImages([]);
+    setMessages((prev) => [...prev, optimisticMsg]);
     setLoading(true);
     try {
       let imageUrls: string[] = [];
-      if (images.length) {
-        const dataUris = await Promise.all(images.map(uriToDataUri));
+      if (localImages.length) {
+        const dataUris = await Promise.all(localImages.map(uriToDataUri));
         const res = await diagnosisApi.upload(dataUris);
         imageUrls = res.urls;
       }
@@ -186,9 +197,11 @@ export default function ConsultScreen() {
 
       setSessionId(res.sessionId);
       setMessages(res.messages as ConsultMessage[]);
-      setInput('');
-      setImages([]);
     } catch (e) {
+      // 失败时回滚：移除乐观消息，恢复输入内容，方便重试
+      setMessages((prev) => prev.filter((m) => m !== optimisticMsg));
+      setInput(content);
+      setImages(localImages);
       Alert.alert('发送失败', e instanceof Error ? e.message : '请稍后重试');
     } finally {
       setLoading(false);
@@ -409,6 +422,22 @@ export default function ConsultScreen() {
             }
           />
 
+          {images.length ? (
+            <View style={styles.pendingImages}>
+              {images.map((uri, i) => (
+                <View key={i} style={styles.pendingWrap}>
+                  <Image source={{ uri }} style={styles.pendingImg} />
+                  <TouchableOpacity
+                    style={styles.pendingRemove}
+                    onPress={() => setImages((prev) => prev.filter((u) => u !== uri))}
+                  >
+                    <Text style={styles.pendingRemoveText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
           <View style={styles.inputBar}>
             <TouchableOpacity style={styles.imgBtn} onPress={pickImages}>
               <Ionicons name="image-outline" size={22} color="#22C55E" />
@@ -429,22 +458,6 @@ export default function ConsultScreen() {
               <Text style={styles.sendText}>发送</Text>
             </TouchableOpacity>
           </View>
-
-          {images.length ? (
-            <View style={styles.pendingImages}>
-              {images.map((uri, i) => (
-                <View key={i} style={styles.pendingWrap}>
-                  <Image source={{ uri }} style={styles.pendingImg} />
-                  <TouchableOpacity
-                    style={styles.pendingRemove}
-                    onPress={() => setImages((prev) => prev.filter((u) => u !== uri))}
-                  >
-                    <Text style={styles.pendingRemoveText}>✕</Text>
-                  </TouchableOpacity>
-                </View>
-              ))}
-            </View>
-          ) : null}
         </>
       )}
     </KeyboardAvoidingView>
@@ -612,7 +625,7 @@ const styles = StyleSheet.create({
   sendBtn: { backgroundColor: '#22C55E', borderRadius: 18, paddingHorizontal: 16, paddingVertical: 10 },
   sendDisabled: { opacity: 0.6 },
   sendText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
-  pendingImages: { flexDirection: 'row', gap: 8, padding: 10, backgroundColor: '#fff', borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#e5e7eb' },
+  pendingImages: { flexDirection: 'row', gap: 8, padding: 10, backgroundColor: '#fff', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: '#e5e7eb' },
   pendingWrap: { width: 60, height: 60, borderRadius: 8, overflow: 'hidden' },
   pendingImg: { width: '100%', height: '100%', backgroundColor: '#e5e7eb' },
   pendingRemove: {

@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import type { VetCase, VetDiagnosisResult } from '@qinkang/types';
 import { vetDiagnosisApi } from '../../src/api/vet-diagnosis';
 import { assetUrl } from '../../src/api/client';
@@ -31,10 +32,13 @@ const STATUS_LABEL: Record<string, string> = {
 
 const isTerminal = (s: string) => s === 'completed' || s === 'failed' || s === 'offline';
 
-function Section(props: { label: string; children: React.ReactNode }) {
+function Section(props: { icon: keyof typeof Ionicons.glyphMap; label: string; children: React.ReactNode }) {
   return (
     <View style={styles.section}>
-      <Text style={styles.label}>{props.label}</Text>
+      <View style={styles.labelRow}>
+        <Ionicons name={props.icon} size={16} color="#22C55E" />
+        <Text style={styles.label}>{props.label}</Text>
+      </View>
       {props.children}
     </View>
   );
@@ -45,6 +49,8 @@ export default function VetDiagnosisDetailScreen() {
   const router = useRouter();
   const [vc, setVc] = useState<VetCase | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [feedbackState, setFeedbackState] = useState<'idle' | 'submitting' | 'done' | string>('idle');
+  const [feedbackValue, setFeedbackValue] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -54,6 +60,10 @@ export default function VetDiagnosisDetailScreen() {
         const data = await vetDiagnosisApi.get(id);
         if (cancelled) return;
         setVc(data);
+        if (data.feedback) {
+          setFeedbackState('done');
+          setFeedbackValue(data.feedback);
+        }
         if (isTerminal(data.status) && timerRef.current) clearInterval(timerRef.current);
       } catch (e) {
         if (!cancelled) setError(e instanceof Error ? e.message : '加载失败');
@@ -70,14 +80,32 @@ export default function VetDiagnosisDetailScreen() {
   const report: VetDiagnosisResult | null = vc?.diagnosisResult ?? null;
   const severity = report?.severity ? SEVERITY_META[report.severity] : null;
   const engineLabel = vc?.diagnosisEngine === 'offline_rule' ? '规则引擎（离线）' : '豆包大模型';
+  const bi = vc?.basicInfo;
 
   const feedback = async (value: string) => {
-    if (!vc) return;
+    if (!vc || feedbackState === 'submitting' || feedbackState === 'done') return;
+    setFeedbackState('submitting');
+    setFeedbackValue(value);
     try {
       await vetDiagnosisApi.feedback(vc.id, value);
+      setFeedbackState('done');
     } catch (e) {
+      setFeedbackValue(null);
+      setFeedbackState('idle');
       setError(e instanceof Error ? e.message : '反馈失败');
     }
+  };
+
+  // 组装转人工兽医的「服务需求」预填文本（含诊断结论 + 基本信息）
+  const buildServiceDesc = () => {
+    const parts: string[] = [];
+    if (bi?.species) parts.push(`动物种类：${bi.species}`);
+    if (bi?.breed) parts.push(`品种：${bi.breed}`);
+    if (bi?.ageDays) parts.push(`日龄：${bi.ageDays}天`);
+    if (report?.primary?.disease) parts.push(`AI诊断：${report.primary.disease}`);
+    if (typeof report?.confidence === 'number') parts.push(`置信度 ${(report.confidence * 100).toFixed(0)}%`);
+    if (report?.riskWarning) parts.push(`风险提示：${report.riskWarning}`);
+    return parts.join('；') || '来自AI兽医诊断转诊，请协助进一步诊断';
   };
 
   return (
@@ -92,10 +120,23 @@ export default function VetDiagnosisDetailScreen() {
         <ActivityIndicator style={styles.loading} color="#22C55E" size="large" />
       ) : (
         <>
+          {/* 顶部：主要基本信息 */}
           <View style={styles.headerCard}>
-            <Text style={styles.caseNo}>{vc.caseNo}</Text>
-            <Text style={styles.status}>{STATUS_LABEL[vc.status] ?? vc.status}</Text>
-            <Text style={styles.engine}>AI引擎：{engineLabel}</Text>
+            <Text style={styles.headerTitle}>
+              {bi?.species ?? vc.species}
+              {bi?.breed ? ` · ${bi.breed}` : ''}
+              {bi?.ageDays ? ` · ${bi.ageDays}日龄` : ''}
+            </Text>
+            {bi?.stock ? (
+              <Text style={styles.headerSub}>
+                存栏 {bi.stock} 羽{bi?.sickCount ? ` · 发病 ${bi.sickCount}` : ''}{bi?.deathCount ? ` · 死亡 ${bi.deathCount}` : ''}
+              </Text>
+            ) : null}
+            {bi?.feedingMode || bi?.productionStage ? (
+              <Text style={styles.headerSub}>
+                {bi?.feedingMode} · {bi?.productionStage}
+              </Text>
+            ) : null}
           </View>
 
           {vc.imageUrls?.length ? (
@@ -121,7 +162,7 @@ export default function VetDiagnosisDetailScreen() {
                 </View>
               ) : null}
 
-              <Section label="🎯 诊断结论">
+              <Section icon="medkit" label="诊断结论">
                 <View style={styles.conclusionRow}>
                   <Text style={styles.disease}>{report.primary?.disease ?? report.disease}</Text>
                   {severity ? (
@@ -137,7 +178,7 @@ export default function VetDiagnosisDetailScreen() {
                   <View style={styles.diffList}>
                     {report.secondaries.map((s, i) => (
                       <View key={i} style={styles.diffRow}>
-                        <Text style={styles.diffName}>🟡 {s.disease}</Text>
+                        <Text style={styles.diffName}>• {s.disease}</Text>
                         <Text style={styles.diffProb}>{(s.confidence * 100).toFixed(0)}%</Text>
                       </View>
                     ))}
@@ -149,7 +190,7 @@ export default function VetDiagnosisDetailScreen() {
               </Section>
 
               {report.evidence?.length ? (
-                <Section label="📋 诊断依据">
+                <Section icon="document-text" label="诊断依据">
                   {report.evidence.map((e, i) => (
                     <Text key={i} style={styles.li}>• {e}</Text>
                   ))}
@@ -157,14 +198,14 @@ export default function VetDiagnosisDetailScreen() {
               ) : null}
 
               {report.differentialTests?.length ? (
-                <Section label="🔬 鉴别诊断建议">
+                <Section icon="flask" label="鉴别诊断建议">
                   {report.differentialTests.map((t, i) => (
                     <Text key={i} style={styles.li}>{i + 1}. {t}</Text>
                   ))}
                 </Section>
               ) : null}
 
-              <Section label="💊 防控方案">
+              <Section icon="bandage" label="防控方案">
                 {report.treatment?.emergency?.length ? (
                   <Text style={styles.subLabel}>【紧急处理】</Text>
                 ) : null}
@@ -198,7 +239,7 @@ export default function VetDiagnosisDetailScreen() {
               </Section>
 
               {report.followup?.length ? (
-                <Section label="📅 随访建议">
+                <Section icon="calendar" label="随访建议">
                   {report.followup.map((f, i) => (
                     <Text key={i} style={styles.li}>{i + 1}. {f}</Text>
                   ))}
@@ -215,19 +256,49 @@ export default function VetDiagnosisDetailScreen() {
                 <Text style={styles.actionBtnText}>🔄 重试诊断</Text>
               </TouchableOpacity>
             ) : null}
-            <TouchableOpacity style={styles.actionBtnGhost} onPress={() => router.push('/service')}>
-              <Text style={styles.actionBtnGhostText}>📞 联系兽医 / 下单诊疗服务</Text>
+            <TouchableOpacity
+              style={styles.actionBtnGhost}
+              onPress={() => router.push({ pathname: '/service', params: { desc: buildServiceDesc() } })}
+            >
+              <Ionicons name="people" size={18} color="#22C55E" />
+              <Text style={styles.actionBtnGhostText}>转人工兽医</Text>
             </TouchableOpacity>
           </View>
 
-          <View style={styles.feedbackRow}>
-            <Text style={styles.feedbackLabel}>诊断是否准确？</Text>
-            <TouchableOpacity style={styles.feedbackBtn} onPress={() => feedback('accurate')}>
-              <Text style={styles.feedbackBtnText}>✓ 准确</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.feedbackBtn} onPress={() => feedback('inaccurate')}>
-              <Text style={styles.feedbackBtnText}>✗ 不准确</Text>
-            </TouchableOpacity>
+          {/* 反馈：点击后显示变化提示并消失 */}
+          {feedbackState === 'done' ? (
+            <View style={styles.feedbackDone}>
+              <Ionicons name="checkmark-circle" size={18} color="#16a34a" />
+              <Text style={styles.feedbackDoneText}>
+                {feedbackValue === 'accurate' ? '感谢反馈：诊断准确' : '感谢反馈：已记录，我们会持续改进'}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.feedbackRow}>
+              <Text style={styles.feedbackLabel}>诊断是否准确？</Text>
+              <TouchableOpacity
+                style={[styles.feedbackBtn, feedbackState === 'submitting' && styles.feedbackDisabled]}
+                onPress={() => feedback('accurate')}
+                disabled={feedbackState === 'submitting'}
+              >
+                <Text style={styles.feedbackBtnText}>✓ 准确</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.feedbackBtn, feedbackState === 'submitting' && styles.feedbackDisabled]}
+                onPress={() => feedback('inaccurate')}
+                disabled={feedbackState === 'submitting'}
+              >
+                <Text style={styles.feedbackBtnText}>✗ 不准确</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* 底部：编号 / 状态 / AI引擎 等元信息 */}
+          <View style={styles.footerMeta}>
+            <Text style={styles.footerMetaText}>编号：{vc.caseNo}</Text>
+            <Text style={styles.footerMetaText}>状态：{STATUS_LABEL[vc.status] ?? vc.status}</Text>
+            <Text style={styles.footerMetaText}>AI引擎：{engineLabel}</Text>
+            <Text style={styles.footerMetaText}>时间：{new Date(vc.createdAt).toLocaleString('zh-CN')}</Text>
           </View>
         </>
       )}
@@ -243,12 +314,11 @@ const styles = StyleSheet.create({
   loading: { marginTop: 60 },
   error: { color: '#EF4444', textAlign: 'center', marginTop: 40 },
   headerCard: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    padding: 14, borderRadius: 12, backgroundColor: '#f9fafb', borderWidth: 1, borderColor: '#e5e7eb',
+    padding: 16, borderRadius: 14, backgroundColor: '#f0fdf4',
+    borderWidth: 1, borderColor: '#bbf7d0', marginBottom: 4,
   },
-  caseNo: { fontSize: 13, color: '#374151', fontWeight: '600', flexShrink: 1 },
-  status: { fontSize: 13, color: '#22C55E', fontWeight: 'bold' },
-  engine: { fontSize: 12, color: '#888', marginLeft: 8 },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#166534' },
+  headerSub: { fontSize: 13, color: '#15803d', marginTop: 4 },
   imageRow: { marginTop: 12 },
   imageRowContent: { gap: 8 },
   image: { width: 240, height: 180, borderRadius: 12, backgroundColor: '#f5f5f5' },
@@ -259,7 +329,8 @@ const styles = StyleSheet.create({
   riskBox: { backgroundColor: '#fef2f2', borderRadius: 12, padding: 14, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#EF4444' },
   riskText: { color: '#b91c1c', fontSize: 14, fontWeight: '600' },
   section: { marginTop: 18 },
-  label: { fontSize: 15, fontWeight: 'bold', color: '#111', marginBottom: 8 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  label: { fontSize: 15, fontWeight: 'bold', color: '#111' },
   conclusionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   disease: { fontSize: 22, fontWeight: 'bold', color: '#111', flexShrink: 1 },
   severityBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999, marginLeft: 8 },
@@ -276,10 +347,23 @@ const styles = StyleSheet.create({
   actionRow: { marginTop: 20, gap: 10 },
   actionBtn: { padding: 14, borderRadius: 12, backgroundColor: '#22C55E', alignItems: 'center' },
   actionBtnText: { color: '#fff', fontSize: 15, fontWeight: 'bold' },
-  actionBtnGhost: { padding: 13, borderRadius: 12, borderWidth: 1, borderColor: '#22C55E', alignItems: 'center' },
+  actionBtnGhost: {
+    padding: 13, borderRadius: 12, borderWidth: 1, borderColor: '#22C55E',
+    alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 6,
+  },
   actionBtnGhostText: { color: '#22C55E', fontSize: 14, fontWeight: '600' },
   feedbackRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 20 },
   feedbackLabel: { fontSize: 13, color: '#666', marginRight: 4 },
   feedbackBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: '#f0f0f0' },
   feedbackBtnText: { fontSize: 13, color: '#374151' },
+  feedbackDisabled: { opacity: 0.5 },
+  feedbackDone: {
+    flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 20,
+    padding: 12, borderRadius: 10, backgroundColor: '#f0fdf4', borderWidth: 1, borderColor: '#bbf7d0',
+  },
+  feedbackDoneText: { fontSize: 13, color: '#166534', fontWeight: '600' },
+  footerMeta: {
+    marginTop: 24, paddingTop: 14, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: '#e5e7eb',
+  },
+  footerMetaText: { fontSize: 12, color: '#9ca3af', marginBottom: 4 },
 });

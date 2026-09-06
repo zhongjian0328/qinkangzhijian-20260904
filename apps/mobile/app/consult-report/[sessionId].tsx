@@ -9,13 +9,17 @@ import {
   Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import type { ConsultSession, ConsultReport } from '@qinkang/types';
 import { consultApi } from '../../src/api/consult';
 
-function Section(props: { label: string; children: React.ReactNode }) {
+function Section(props: { icon: keyof typeof Ionicons.glyphMap; label: string; children: React.ReactNode }) {
   return (
     <View style={styles.section}>
-      <Text style={styles.label}>{props.label}</Text>
+      <View style={styles.labelRow}>
+        <Ionicons name={props.icon} size={16} color="#22C55E" />
+        <Text style={styles.label}>{props.label}</Text>
+      </View>
       {props.children}
     </View>
   );
@@ -62,6 +66,16 @@ export default function ConsultReportScreen() {
 
   const diag = report?.diagnosis;
 
+  // 把报告中的诊断结论组装成诊疗服务的「服务需求」预填文本
+  const goToVetDesc = () => {
+    if (!diag?.preliminaryDiagnosis) return '来自AI对话问诊转诊，请协助进一步诊断';
+    const parts = [`初步诊断：${diag.preliminaryDiagnosis}`];
+    if (typeof diag.confidence === 'number') parts.push(`置信度 ${(diag.confidence * 100).toFixed(0)}%`);
+    if (diag.suggestions?.length) parts.push(`建议：${diag.suggestions.join('；')}`);
+    if (diag.nextSteps) parts.push(`后续：${diag.nextSteps}`);
+    return parts.join('\n');
+  };
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
@@ -101,7 +115,7 @@ export default function ConsultReportScreen() {
           </View>
 
           {diag?.preliminaryDiagnosis ? (
-            <Section label="🎯 诊断结论">
+            <Section icon="medkit" label="诊断结论">
               <Text style={styles.disease}>{diag.preliminaryDiagnosis}</Text>
               {typeof diag.confidence === 'number' ? (
                 <Text style={styles.confidence}>
@@ -112,7 +126,7 @@ export default function ConsultReportScreen() {
           ) : null}
 
           {diag?.suggestions?.length ? (
-            <Section label="💊 处置建议">
+            <Section icon="bandage" label="处置建议">
               {diag.suggestions.map((s, i) => (
                 <Text key={i} style={styles.li}>
                   {i + 1}. {s}
@@ -122,13 +136,13 @@ export default function ConsultReportScreen() {
           ) : null}
 
           {diag?.nextSteps ? (
-            <Section label="📅 后续建议">
+            <Section icon="calendar" label="后续建议">
               <Text style={styles.li}>{diag.nextSteps}</Text>
             </Section>
           ) : null}
 
           {report.relatedDiseases?.length ? (
-            <Section label="🔍 关联疾病">
+            <Section icon="git-branch" label="关联疾病">
               <View style={styles.tagRow}>
                 {report.relatedDiseases.map((d, i) => (
                   <View key={i} style={styles.tag}>
@@ -140,7 +154,7 @@ export default function ConsultReportScreen() {
           ) : null}
 
           {report.conversationSummary ? (
-            <Section label="📋 问诊摘要">
+            <Section icon="document-text" label="问诊摘要">
               <Text style={styles.li}>{report.conversationSummary}</Text>
             </Section>
           ) : null}
@@ -149,9 +163,10 @@ export default function ConsultReportScreen() {
 
           <TouchableOpacity
             style={styles.ghostBtn}
-            onPress={() => router.push('/service')}
+            onPress={() => router.push({ pathname: '/service', params: { desc: goToVetDesc() } })}
           >
-            <Text style={styles.ghostBtnText}>👨‍⚕️ 转人工兽医 / 下单诊疗服务</Text>
+            <Ionicons name="people" size={18} color="#22C55E" />
+            <Text style={styles.ghostBtnText}>转人工兽医</Text>
           </TouchableOpacity>
         </>
       )}
@@ -183,7 +198,8 @@ const styles = StyleSheet.create({
   reportTitle: { fontSize: 18, fontWeight: 'bold', color: '#111', marginTop: 8 },
   reportMeta: { fontSize: 12, color: '#6b7280', marginTop: 6 },
   section: { marginTop: 18 },
-  label: { fontSize: 15, fontWeight: 'bold', color: '#111', marginBottom: 8 },
+  labelRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  label: { fontSize: 15, fontWeight: 'bold', color: '#111' },
   disease: { fontSize: 22, fontWeight: 'bold', color: '#166534' },
   confidence: { fontSize: 14, color: '#22C55E', fontWeight: 'bold', marginTop: 6 },
   li: { fontSize: 14, color: '#4b5563', lineHeight: 22, marginBottom: 4 },
@@ -196,7 +212,8 @@ const styles = StyleSheet.create({
   disclaimer: { fontSize: 12, color: '#9ca3af', marginTop: 24, lineHeight: 18 },
   ghostBtn: {
     marginTop: 16, padding: 14, borderRadius: 12, borderWidth: 1,
-    borderColor: '#22C55E', alignItems: 'center',
+    borderColor: '#22C55E', alignItems: 'center', flexDirection: 'row',
+    justifyContent: 'center', gap: 6,
   },
   ghostBtnText: { color: '#22C55E', fontSize: 14, fontWeight: '600' },
 });

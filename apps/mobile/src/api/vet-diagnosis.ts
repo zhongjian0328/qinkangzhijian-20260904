@@ -37,4 +37,6 @@ export const vetDiagnosisApi = {
     api.post<VetCase>(`/vet-diagnosis/cases/${id}/feedback`, { feedback }),
   saveOffline: (data: VetCasePayload & { diagnosisResult: VetDiagnosisResult; confidence: number }) =>
     api.post<VetCase>('/vet-diagnosis/offline', data),
+  ocr: (imageUrl: string, field?: string) =>
+    api.post<{ text: string }>('/vet-diagnosis/ocr', { imageUrl, field }, { timeoutMs: 90000 }),
 };

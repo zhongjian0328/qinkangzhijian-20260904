@@ -10,6 +10,7 @@ import {
 import { useRouter } from 'expo-router';
 import type { VetCase } from '@qinkang/types';
 import { vetDiagnosisApi } from '../../src/api/vet-diagnosis';
+import { useAuthStore } from '../../src/store/auth';
 
 const STATUS_LABEL: Record<string, string> = {
   draft: '草稿', submitted: '已提交', analyzing: '分析中',
@@ -18,6 +19,8 @@ const STATUS_LABEL: Record<string, string> = {
 
 export default function VetCaseLibraryScreen() {
   const router = useRouter();
+  const user = useAuthStore((s) => s.user);
+  const isFarmer = user?.role === 'farmer';
   const [cases, setCases] = useState<VetCase[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +49,7 @@ export default function VetCaseLibraryScreen() {
       <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
         <Text style={styles.backText}>‹ 返回</Text>
       </TouchableOpacity>
-      <Text style={styles.title}>📚 我的病例库</Text>
+      <Text style={styles.title}>{isFarmer ? '诊断历史' : '病例库'}</Text>
 
       <View style={styles.statsRow}>
         <View style={styles.statBox}><Text style={styles.statNum}>{cases.length}</Text><Text style={styles.statLabel}>总病例</Text></View>
@@ -59,7 +62,7 @@ export default function VetCaseLibraryScreen() {
       ) : error ? (
         <Text style={styles.error}>{error}</Text>
       ) : cases.length === 0 ? (
-        <Text style={styles.empty}>暂无病例，去「AI诊断」Tab 提交一例吧</Text>
+        <Text style={styles.empty}>暂无记录，去「AI诊断」Tab 提交一例吧</Text>
       ) : (
         cases.map((c) => {
           const disease = c.diagnosisResult?.disease ?? (c.status === 'completed' ? '—' : '分析中');

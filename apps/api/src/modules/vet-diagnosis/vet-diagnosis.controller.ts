@@ -66,4 +66,10 @@ export class VetDiagnosisController {
   offline(@Request() req, @Body() dto: Record<string, any>) {
     return this.vetDiagnosisService.saveOffline(req.user.id, dto);
   }
+
+  @Post('ocr')
+  @ApiOperation({ summary: '报告/记录拍照识别（OCR 文字提取）' })
+  ocr(@Request() req, @Body() dto: { imageUrl?: string; field?: string }) {
+    return this.vetDiagnosisService.ocr(dto?.imageUrl ?? '', dto?.field ?? '');
+  }
 }

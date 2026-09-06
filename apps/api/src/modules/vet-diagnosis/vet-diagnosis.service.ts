@@ -247,4 +247,26 @@ export class VetDiagnosisService {
       data: { feedback },
     });
   }
+
+  async ocr(imageUrl: string, field?: string) {
+    if (!imageUrl) throw new BadRequestException('缺少识别图片');
+    const dataUri = await this.readAsDataUri(imageUrl);
+
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 90000);
+    try {
+      const response = await fetch(`${this.aiUrl()}/vet-diagnose/ocr`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image_url: dataUri, field: field ?? '' }),
+        signal: controller.signal,
+      });
+      if (!response.ok) {
+        throw new Error(`报告识别返回 ${response.status}: ${await response.text()}`);
+      }
+      return response.json();
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
 }

@@ -1,5 +1,10 @@
 import { api } from './client';
-import { AtlasIndex } from '@qinkang/types';
+import {
+  AtlasIndex,
+  FarmingArticle,
+  FarmingIndex,
+  KnowledgeStats,
+} from '@qinkang/types';
 
 export interface KnowledgeSearchResult {
   id: string;
@@ -7,9 +12,15 @@ export interface KnowledgeSearchResult {
   excerpt: string;
 }
 
+export interface FigureImage {
+  caption: string;
+  image: string | null;
+}
+
 export interface FigureNote {
   title: string;
   text: string;
+  images?: FigureImage[];
 }
 
 export interface ChapterDetail {
@@ -36,4 +47,7 @@ export const knowledgeApi = {
     }),
   chapter: (id: string) => api.get<ChapterDetail>(`/knowledge/chapter/${id}`),
   atlas: () => api.get<AtlasIndex>('/knowledge/atlas'),
+  stats: () => api.get<KnowledgeStats>('/knowledge/stats'),
+  farmingIndex: () => api.get<FarmingIndex>('/knowledge/farming/index'),
+  farmingArticle: (id: string) => api.get<FarmingArticle>(`/knowledge/farming/article/${id}`),
 };

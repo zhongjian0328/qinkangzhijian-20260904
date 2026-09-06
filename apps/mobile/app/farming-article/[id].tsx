@@ -4,19 +4,28 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Image,
   ActivityIndicator,
   TouchableOpacity,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { knowledgeApi, ChapterDetail } from '../../src/api/knowledge';
-import { assetUrl } from '../../src/api/client';
+import { FarmingArticle } from '@qinkang/types';
+import { knowledgeApi } from '../../src/api/knowledge';
 
-export default function KnowledgeChapterScreen() {
+function cleanContent(raw: string): string {
+  return raw
+    .split('\n')
+    .map((line) => {
+      const t = line.replace(/\*\*/g, '');
+      return t.replace(/^-\s+/, '• ');
+    })
+    .join('\n');
+}
+
+export default function FarmingArticleScreen() {
   const router = useRouter();
   const { id, title } = useLocalSearchParams<{ id: string; title: string }>();
-  const [chapter, setChapter] = useState<ChapterDetail | null>(null);
+  const [article, setArticle] = useState<FarmingArticle | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -24,15 +33,11 @@ export default function KnowledgeChapterScreen() {
     if (!id) return;
     setLoading(true);
     knowledgeApi
-      .chapter(id)
-      .then(setChapter)
+      .farmingArticle(id)
+      .then(setArticle)
       .catch((e) => setError(e instanceof Error ? e.message : '加载失败'))
       .finally(() => setLoading(false));
   }, [id]);
-
-  const images = (chapter?.figures ?? []).flatMap((f) =>
-    (f.images ?? []).filter((img) => img.image).map((img) => ({ ...img, figureTitle: f.title })),
-  );
 
   return (
     <View style={styles.container}>
@@ -41,7 +46,7 @@ export default function KnowledgeChapterScreen() {
           <Ionicons name="arrow-back" size={22} color="#111" />
         </TouchableOpacity>
         <Text style={styles.headerTitle} numberOfLines={1}>
-          {title || chapter?.title || '知识详情'}
+          {title || article?.title || '养鸡技巧'}
         </Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -51,27 +56,13 @@ export default function KnowledgeChapterScreen() {
           <ActivityIndicator style={styles.loading} color="#22C55E" />
         ) : error ? (
           <Text style={styles.error}>{error}</Text>
-        ) : chapter ? (
+        ) : article ? (
           <>
-            <Text style={styles.title}>{chapter.title}</Text>
-
-            {images.length > 0 ? (
-              <View style={styles.figuresCard}>
-                <Text style={styles.figuresLabel}>图谱诊断要点（图文）</Text>
-                {images.map((img, i) => (
-                  <View key={i} style={styles.figureItem}>
-                    <Image
-                      source={{ uri: assetUrl(img.image!) }}
-                      style={styles.image}
-                      resizeMode="contain"
-                    />
-                    <Text style={styles.caption}>{img.caption}</Text>
-                  </View>
-                ))}
-              </View>
-            ) : null}
-
-            <Text style={styles.body}>{chapter.text}</Text>
+            <Text style={styles.title}>{article.title}</Text>
+            <View style={styles.categoryTag}>
+              <Text style={styles.categoryTagText}>{article.category}</Text>
+            </View>
+            <Text style={styles.body}>{cleanContent(article.content)}</Text>
           </>
         ) : null}
       </ScrollView>
@@ -97,24 +88,15 @@ const styles = StyleSheet.create({
   content: { padding: 20, paddingBottom: 40 },
   loading: { marginTop: 40 },
   error: { color: '#EF4444', textAlign: 'center', marginTop: 40 },
-  title: { fontSize: 22, fontWeight: 'bold', color: '#111', marginBottom: 16 },
-  figuresCard: {
+  title: { fontSize: 22, fontWeight: 'bold', color: '#111', marginBottom: 12, lineHeight: 30 },
+  categoryTag: {
+    alignSelf: 'flex-start',
     backgroundColor: '#ECFDF5',
-    borderRadius: 12,
-    padding: 14,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
     marginBottom: 16,
-    borderLeftWidth: 4,
-    borderLeftColor: '#22C55E',
   },
-  figuresLabel: { fontSize: 14, fontWeight: 'bold', color: '#16A34A', marginBottom: 10 },
-  figureItem: { marginBottom: 16 },
-  image: {
-    width: '100%',
-    height: 200,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    marginBottom: 8,
-  },
-  caption: { fontSize: 13, color: '#334155', lineHeight: 20 },
-  body: { fontSize: 14, color: '#333', lineHeight: 24 },
+  categoryTagText: { fontSize: 12, color: '#16A34A', fontWeight: '600' },
+  body: { fontSize: 15, color: '#333', lineHeight: 26 },
 });

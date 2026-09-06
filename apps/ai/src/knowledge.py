@@ -32,11 +32,37 @@ _TITLE_RE = re.compile(
 # 图注中的图号（如 "图2-33"），用于映射到 images/ 下的 figX-YYY.jpg
 _FIGURE_RE = re.compile(r"图(\d+)-(\d+)")
 
+# 养鸡疑难300问的问答条目标题（如 "### Q5 什么叫配合力？育种时为什么测定？"）
+_Q_RE = re.compile(r"^###\s*Q(\d+)\s*(.+?)\s*$")
+
 # 图谱文件名 -> 展示名
 _ATLAS_NAMES = {
     "chuanranbing-tupu": "传染病图谱",
     "jishengchong-tupu": "寄生虫图谱",
     "putongbing-tupu": "普通病图谱",
+}
+
+# 总论章节（ch01~ch03 为预防/诊断/药物治疗总论，非具体病种）
+_TOTAL_CHAPTER_STEMS = {
+    "ch01-qinbing-yufang",
+    "ch02-qinbing-zhenduan",
+    "ch03-qinbing-yaowu-zhiliao",
+}
+
+# 《养鸡疑难300问》章节 stem -> 分类名（作为养鸡技巧的分类目录）
+_FARMING_CATEGORIES: dict[str, str] = {
+    "ch01-pinzhong-fanyu": "鸡的品种与繁育",
+    "ch02-fuhua": "孵化技术",
+    "ch03-yingyang-siliao": "鸡的营养与饲料",
+    "ch04-chuji-siyang": "雏鸡的饲养管理",
+    "ch05-yucheng-siyang": "育成鸡的饲养管理",
+    "ch06-chandan-siyang": "产蛋鸡的饲养管理",
+    "ch07-rouzai-siyang": "肉用仔鸡的饲养管理",
+    "ch08-rouyong-zhongji": "肉用种鸡的饲养管理",
+    "ch09-wugonghai": "无公害养鸡技术要点",
+    "ch10-jishe-shebei": "鸡舍与饲养设备",
+    "ch11-jingying-guanli": "家庭鸡场的经营管理",
+    "ch12-jibing-fangzhi": "鸡常见病及防治",
 }
 
 
@@ -157,6 +183,16 @@ class DiseaseKnowledge(_MarkdownKnowledge):
         if mp.exists():
             self.manifest = mp.read_text(encoding="utf-8")
 
+    @property
+    def disease_count(self) -> int:
+        """具体病种章节数（扣除 ch01~ch03 总论）。"""
+        return sum(1 for stem in self.chapters if stem not in _TOTAL_CHAPTER_STEMS)
+
+    @property
+    def figure_count(self) -> int:
+        """图谱原图数量（从 manifest 图号索引统计）。"""
+        return len(set(re.findall(r"fig\d+-\d+\.jpg", self.manifest)))
+
     @staticmethod
     def _name_match(name: str, header: str) -> bool:
         """病名与图谱标题模糊匹配（"新城疫" 命中 "鸡新城疫（p22–p30）"）。"""
@@ -167,11 +203,26 @@ class DiseaseKnowledge(_MarkdownKnowledge):
         return n in h or h in n
 
     def lookup_figures(self, disease_title: str, top_k: int = 1) -> list[dict]:
-        """按病名在图谱中查找病变图注，返回 [{title, text}]。"""
+        """按病名在图谱中查找病变图注，返回 [{title, text, images}]。
+
+        images 为逐条图注（含 caption 与图号映射的图片文件名 figX-YYY.jpg），
+        用于疾病详情页图文并茂展示；text 保留整段原始图注（供提示词注入）。
+        """
         results: list[dict] = []
         for title, body in self.atlas:
             if self._name_match(disease_title, title):
-                results.append({"title": title, "text": body})
+                images: list[dict] = []
+                for line in body.splitlines():
+                    line = line.strip()
+                    if not line:
+                        continue
+                    caption = line.lstrip("- ").strip()
+                    m = _FIGURE_RE.search(caption)
+                    images.append({
+                        "caption": caption,
+                        "file": f"fig{m.group(1)}-{int(m.group(2)):03d}.jpg" if m else None,
+                    })
+                results.append({"title": title, "text": body, "images": images})
                 if len(results) >= top_k:
                     break
         return results
@@ -207,7 +258,85 @@ class FarmingKnowledge(_MarkdownKnowledge):
     """养殖知识域：12 章《养鸡疑难300问》。"""
 
     def __init__(self, base_dir: Path = FARMING_KNOWLEDGE_DIR) -> None:
+        self.articles: dict[str, list[dict]] = {}  # 章 stem -> [{q, title, text}]
         super().__init__(base_dir)
+        self._parse_articles()
+
+    def _parse_articles(self) -> None:
+        """把每章的 `### QN 标题` 问答条目拆成单篇咨询文章，按章分类。"""
+        for stem, ch in self.chapters.items():
+            items: list[dict] = []
+            cur_q = ""
+            cur_title = ""
+            cur_body: list[str] = []
+
+            def flush() -> None:
+                nonlocal cur_q, cur_title, cur_body
+                if cur_q:
+                    items.append({
+                        "q": cur_q,
+                        "title": cur_title,
+                        "text": "\n".join(cur_body).strip(),
+                    })
+                cur_q = ""
+                cur_title = ""
+                cur_body = []
+
+            for line in ch.text.splitlines():
+                stripped = line.strip()
+                m = _Q_RE.match(stripped)
+                if m:
+                    flush()
+                    cur_q = m.group(1)
+                    cur_title = m.group(2).strip()
+                    cur_body = []
+                elif stripped.startswith("## "):
+                    # 章节级小节标题（如「关键处置要点」「关联」）不属于问答正文，终止当前问答
+                    flush()
+                elif cur_q:
+                    cur_body.append(line)
+            flush()
+            self.articles[stem] = items
+
+    def categories(self) -> list[dict]:
+        """返回养鸡技巧分类目录（按章），含每类文章数与文章列表。"""
+        result: list[dict] = []
+        for stem, name in _FARMING_CATEGORIES.items():
+            if stem not in self.articles:
+                continue
+            items = self.articles[stem]
+            result.append({
+                "id": stem,
+                "name": name,
+                "count": len(items),
+                "articles": [
+                    {"id": f"{stem}-q{q}", "title": title, "excerpt": text[:120]}
+                    for q, title, text in (
+                        (a["q"], a["title"], a["text"]) for a in items
+                    )
+                ],
+            })
+        return result
+
+    def article(self, article_id: str) -> dict | None:
+        """按 id（{章}-q{问号}）返回单篇问答全文。"""
+        if "-q" not in article_id:
+            return None
+        stem, q = article_id.rsplit("-q", 1)
+        category = _FARMING_CATEGORIES.get(stem)
+        if not category:
+            return None
+        for a in self.articles.get(stem, []):
+            if a["q"] == q:
+                return {
+                    "id": article_id,
+                    "categoryId": stem,
+                    "category": category,
+                    "title": a["title"],
+                    "content": a["text"],
+                }
+        return None
+
 
 
 # 两个知识域单例

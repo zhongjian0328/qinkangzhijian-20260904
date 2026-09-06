@@ -178,12 +178,40 @@ async def get_chapter(chapter_id: str):
     ch = knowledge.chapters.get(chapter_id) or farming_knowledge.chapters.get(chapter_id)
     if not ch:
         raise HTTPException(status_code=404, detail="章节不存在")
+    figures = knowledge.lookup_figures(ch.title, top_k=1)
     return {
         "id": ch.id,
         "title": ch.title,
         "text": ch.text,
-        "figures": knowledge.lookup_figures(ch.title, top_k=1),
+        "figures": figures,
     }
+
+
+@app.get("/knowledge/stats")
+async def get_knowledge_stats():
+    """知识库统计：鸡病数量、鸡病图片张数、养鸡实用技巧篇数 + 养鸡技巧分类目录。"""
+    return {
+        "disease_count": knowledge.disease_count,
+        "figure_count": knowledge.figure_count,
+        "tip_count": sum(len(v) for v in farming_knowledge.articles.values()),
+        "categories": farming_knowledge.categories(),
+    }
+
+
+@app.get("/knowledge/farming/index")
+async def get_farming_index():
+    """养鸡技巧分类目录（每类含问答文章列表）。"""
+    return {"total": sum(len(v) for v in farming_knowledge.articles.values()),
+            "categories": farming_knowledge.categories()}
+
+
+@app.get("/knowledge/farming/article/{article_id}")
+async def get_farming_article(article_id: str):
+    """按 id（{章}-q{问号}）返回单篇养鸡技巧问答全文。"""
+    a = farming_knowledge.article(article_id)
+    if not a:
+        raise HTTPException(status_code=404, detail="问答不存在")
+    return a
 
 
 def _build_reference(symptoms: list[str], species: str, top_k: int = 3) -> str:

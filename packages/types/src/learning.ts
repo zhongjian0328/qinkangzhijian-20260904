@@ -75,3 +75,31 @@ export interface AtlasIndex {
   atlases: Atlas[];
   total: number;
 }
+
+// 养鸡知识库
+export interface FarmingCategory {
+  id: string;
+  name: string;
+  count: number;
+  articles: { id: string; title: string; excerpt: string }[];
+}
+
+export interface FarmingIndex {
+  total: number;
+  categories: FarmingCategory[];
+}
+
+export interface FarmingArticle {
+  id: string;
+  categoryId: string;
+  category: string;
+  title: string;
+  content: string;
+}
+
+export interface KnowledgeStats {
+  disease_count: number;
+  figure_count: number;
+  tip_count: number;
+  categories: FarmingCategory[];
+}

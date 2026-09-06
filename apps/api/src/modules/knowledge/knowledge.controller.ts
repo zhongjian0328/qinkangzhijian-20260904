@@ -34,6 +34,24 @@ export class KnowledgeController {
     return this.knowledgeService.atlas();
   }
 
+  @Get('stats')
+  @ApiOperation({ summary: '知识库统计（鸡病数量/图片/养鸡技巧篇数+分类目录）' })
+  stats() {
+    return this.knowledgeService.stats();
+  }
+
+  @Get('farming/index')
+  @ApiOperation({ summary: '养鸡技巧分类目录（每类含问答文章列表）' })
+  farmingIndex() {
+    return this.knowledgeService.farmingIndex();
+  }
+
+  @Get('farming/article/:id')
+  @ApiOperation({ summary: '按 id 返回单篇养鸡技巧问答全文' })
+  farmingArticle(@Param('id') id: string) {
+    return this.knowledgeService.farmingArticle(id);
+  }
+
   @Get('chapter/:id')
   @ApiOperation({ summary: '按章节 id 返回全文（附图谱图注）' })
   chapter(@Param('id') id: string) {

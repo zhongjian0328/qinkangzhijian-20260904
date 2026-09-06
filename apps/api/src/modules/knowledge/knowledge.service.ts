@@ -43,6 +43,42 @@ export class KnowledgeService {
     if (!response.ok) {
       throw new BadRequestException(`知识服务返回 ${response.status}: ${await response.text()}`);
     }
+    const data = await response.json();
+    // 把图号映射的图片文件名转换为可对外访问的静态路径 /atlas/xxx.jpg
+    const figures = (data?.figures ?? []).map((f: any) => ({
+      ...f,
+      images: (f.images ?? []).map((img: any) => ({
+        caption: img.caption,
+        image: img.file ? `/atlas/${img.file}` : null,
+      })),
+    }));
+    return { ...data, figures };
+  }
+
+  async stats() {
+    const url = `${this.aiUrl()}/knowledge/stats`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new BadRequestException(`知识服务返回 ${response.status}: ${await response.text()}`);
+    }
+    return response.json();
+  }
+
+  async farmingIndex() {
+    const url = `${this.aiUrl()}/knowledge/farming/index`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new BadRequestException(`知识服务返回 ${response.status}: ${await response.text()}`);
+    }
+    return response.json();
+  }
+
+  async farmingArticle(id: string) {
+    const url = `${this.aiUrl()}/knowledge/farming/article/${encodeURIComponent(id)}`;
+    const response = await fetch(url);
+    if (!response.ok) {
+      throw new BadRequestException(`知识服务返回 ${response.status}: ${await response.text()}`);
+    }
     return response.json();
   }
 
